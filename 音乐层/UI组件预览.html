@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>共用/ui · 组件总览</title>
+<link rel="stylesheet" href="../共用/ui.css">
+<style>
+  /* 这一页只是陈列柜。它自己的排版不算设计系统的一部分 —— 别往 ui.css 里抄。
+   * 注意 <body> 上挂了 .y2k：组件不依赖弹窗，整页也能用。 */
+  /* 背景照 共用/constitution.js 的 bgTop/bgMid/bgBot 抄了一份，
+   * 再压一张照片质感的噪点 —— 玻璃要有东西可以透，纯色背景看不出材质。 */
+  html { background: #101B31; }
+  body {
+    margin: 0; padding: 26px 20px 64px;
+    background:
+      radial-gradient(60% 40% at 78% 12%, rgba(255,190,150,.28) 0%, transparent 60%),
+      radial-gradient(50% 36% at 18% 30%, rgba(120,220,255,.20) 0%, transparent 60%),
+      radial-gradient(120% 60% at 50% 104%, rgba(230,207,195,.40) 0%, transparent 62%),
+      linear-gradient(180deg, #101B31 0%, #1E2F5C 26%, #3E6091 52%, #6C98C8 76%, #C9C2BC 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  .sheet {
+    position: relative;
+    max-width: 880px; margin: 0 auto;
+    border-radius: var(--y2k-r);
+    backdrop-filter: var(--y2k-blur);
+    -webkit-backdrop-filter: var(--y2k-blur);
+    box-shadow: var(--y2k-shadow-soft), var(--y2k-glow), var(--y2k-thickness);
+    overflow: hidden;
+  }
+  .sheet > header {
+    padding: 20px var(--y2k-pad) 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.03));
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,.16);
+  }
+  .sheet > header h1 {
+    margin: 0; font-family: var(--y2k-mono);
+    font-size: 13px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase;
+    color: var(--y2k-ink);
+  }
+  .sheet > header p { margin: 7px 0 0; font-size: 12px; color: var(--y2k-ink-soft); }
+  .demo { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+  .well {
+    background: rgba(8,22,38,.20); border-radius: var(--y2k-r-sm);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+    overflow: hidden;
+  }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw {
+    width: 104px; padding: 7px; border-radius: var(--y2k-r-xs);
+    background: rgba(255,255,255,.07);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+    font: 9px/1.5 var(--y2k-mono); color: var(--y2k-ink-soft);
+    word-break: break-all;
+  }
+  .sw i {
+    display: block; height: 26px; border-radius: 4px; margin-bottom: 5px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+    /* 半透明的令牌要有底才看得出来 */
+    background-image: linear-gradient(45deg, rgba(255,255,255,.10) 25%, transparent 25%,
+      transparent 75%, rgba(255,255,255,.10) 75%), linear-gradient(45deg,
+      rgba(255,255,255,.10) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.10) 75%);
+    background-size: 8px 8px; background-position: 0 0, 4px 4px;
+  }
+</style>
+</head>
+<body class="y2k">
+
+<main class="sheet y2k-glass y2k-grain">
+  <header>
+    <h1>共用 / ui</h1>
+    <p>全站 UI 设计系统。播放器逼出来的那一套 —— 许愿页面、简历页、以后所有弹窗都用它。
+       这一页里没有一个组件是播放器专用的。</p>
+  </header>
+  <div id="body"></div>
+</main>
+
+<script type="module">
+import { ui, h } from '../共用/ui.js';
+
+/* 陈列柜本身也接上真折射，这样这一页就是材质自己的样品 */
+const sheetEl = document.querySelector('.sheet');
+const sheetLens = ui.refract(sheetEl, { radius: 22, band: 46, scale: -168, chroma: 9, blur: 4 });
+
+const body = document.getElementById('body');
+const add = (...n) => body.append(...n.flat(Infinity).filter(Boolean));
+
+/* ---- 色板：先把令牌摊开，改皮就改这几个变量 ---- */
+const TOKENS = [
+  '--y2k-ink', '--y2k-ink-soft', '--y2k-ink-faint',
+  '--y2k-shade', '--y2k-tint', '--y2k-tint-strong', '--y2k-tint-sunken',
+  '--y2k-rim-hi', '--y2k-rim-cool', '--y2k-rim-warm', '--y2k-rim-lo',
+  '--y2k-accent', '--y2k-accent-hi', '--y2k-accent-pale',
+  '--y2k-blush', '--y2k-citron', '--y2k-scrim',
+];
+const cs = getComputedStyle(document.documentElement);
+
+add(ui.section(
+  ui.legend('设计令牌'),
+  h('div.swatches', TOKENS.map(t => h('div.sw',
+    h('i', { style: { backgroundColor: `var(${t})` } }),
+    t.replace('--y2k-', ''),
+    h('br'), cs.getPropertyValue(t).trim(),
+  ))),
+  ui.note(`材质是 liquid glass：薄、提饱和、一圈会亮的折射边。模糊很轻（${cs.getPropertyValue('--y2k-blur').trim()}）——
+           一加重就变回毛玻璃了。粉（blush）是全场唯一的高饱和色，只许用在一处（风格宪法 第三节）。`),
+  h('div', { style: { marginTop: '8px' } },
+    ui.tag({ label: ui.canRefract ? '真折射 · 已启用' : '真折射 · 本浏览器不支持',
+             variant: ui.canRefract ? 'citron' : 'quiet' })),
+  ui.note(ui.canRefract
+    ? '窗口边缘在真的弯折背景（SVG 位移图 + backdrop-filter）。把鼠标在这块面板上移，高光会跟着走。'
+    : '只有 Chromium 支持把 SVG 滤镜用作 backdrop-filter。这里退回了纯 CSS 的玻璃 —— 还是好看的，只是边缘不弯。'),
+));
+
+/* ---- 材质本体 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('材质 · liquid glass'),
+  h('div', { style: { display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' } },
+    h('div.y2k-glass', { style: { borderRadius: 'var(--y2k-r)', padding: '18px', minHeight: '96px' } },
+      h('div.y2k-field__label', '一块玻璃'),
+      h('div.y2k-note', { style: { marginTop: '6px' } }, '染色 + 镜面高光 + 折射边')),
+    h('div.y2k-glass', { style: { borderRadius: '999px', padding: '18px 22px', minHeight: '96px',
+                                  display: 'grid', placeItems: 'center' } },
+      h('div.y2k-field__label', '圆的也行')),
+    h('div.y2k-glass', { style: { borderRadius: 'var(--y2k-r-sm)', padding: '18px', minHeight: '96px',
+                                  '--y2k-tint': 'rgba(255,179,208,.16)' } },
+      h('div.y2k-field__label', '换个染色'),
+      h('div.y2k-note', { style: { marginTop: '6px' } }, '覆盖 --y2k-tint 就行')),
+  ),
+  ui.note('折射边是 ::before 用 conic-gradient + mask 抠出来的一圈，所以圆角多大它都跟得住 —— border 做不到渐变。'),
+  ui.note('注意这三块只有「亮边」，没有「弯折」—— 真折射每块要一张自己的位移图，'
+        + '只给窗口那一层用（里面的小控件背后是平的玻璃，弯了也看不出来，纯浪费）。'),
+));
+
+/* ---- 按钮 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('按钮'),
+  h('div.demo',
+    ui.btn({ label: '主按钮', variant: 'primary' }),
+    ui.btn({ label: '普通按钮' }),
+    ui.btn({ label: '次按钮', variant: 'ghost' }),
+    ui.btn({ label: '小号', size: 'sm' }),
+    ui.btn({ label: '大号', size: 'lg' }),
+    ui.btn({ label: '外链', href: 'https://open.spotify.com', ext: true }),
+    ui.btn({ label: '禁用', disabled: true }),
+    ui.btn({ label: '×', variant: 'icon' }),
+  ),
+  ui.note('按下去会真的陷进去（硬投影收掉 + 位移）—— 千禧年按钮的手感。'),
+));
+
+/* ---- 标签页 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('标签页'),
+  ui.tabs({
+    items: [{ id: 'a', label: '唱片架' }, { id: 'b', label: '正在放' }, { id: 'c', label: '关于' }],
+    active: 'a',
+  }),
+));
+
+/* ---- 列表行 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('列表行'),
+  h('div.well', ui.list([
+    ui.row({ index: 1, title: '普通一行', sub: '副标题', meta: '2:35' }),
+    ui.row({ index: 2, title: '鼠标放上来', sub: '会往右挪一点', meta: '1:48' }),
+    ui.row({ index: 3, title: '选中态', sub: '左边一条竖线', meta: '3:11', active: true }),
+    ui.row({ index: 4, title: '播放中', sub: '序号变成跳动的柱子', meta: '2:31', active: true, playing: true }),
+    ui.row({ index: 5, title: '不可点', sub: '纯展示', meta: '—', static: true }),
+  ])),
+));
+
+/* ---- 网格卡片 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('网格卡片'),
+  ui.grid([
+    ui.card({ cover: 'covers/get-up.jpg',   label: "NewJeans 2nd EP 'Get Up'", sub: 'NewJeans · 2023' }),
+    ui.card({ cover: 'covers/kei-nujabes.jpg', label: 'Kei Nishikori meets Nujabes', sub: 'Nujabes · 2016' }),
+    ui.card({ cover: 'covers/sons-of-1973.jpg', label: 'Sons of 1973', sub: 'Satellite Lovers · 1996', active: true }),
+    ui.card({ cover: 'covers/lingzi-4.jpg', label: '玲子4.0', sub: '叶霁晨',
+              flag: ui.tag({ label: '未接入', variant: 'quiet' }) }),
+  ]),
+  ui.note('封面上那道斜白光条是画上去的，不跟随光源 —— 宪法 1.5 节的「手绘高光条」。'),
+));
+
+/* ---- 标签 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('标签'),
+  h('div.demo',
+    ui.tag({ label: '30 秒试听' }),
+    ui.tag({ label: '正在放', dot: true }),
+    ui.tag({ label: '未接入', variant: 'quiet' }),
+    ui.tag({ label: '新', variant: 'blush' }),
+    ui.tag({ label: 'DEMO', variant: 'citron' }),
+  ),
+));
+
+/* ---- 表单 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('表单'),
+  h('div', { style: { display: 'grid', gap: '12px', maxWidth: '420px' } },
+    ui.field({ label: '名字', placeholder: '不填也可以' }),
+    ui.field({ label: '愿望', textarea: true, placeholder: '想说的话……', hint: '最多 60 个字。' }),
+    ui.slider({ label: '环境音', value: 70 }),
+  ),
+));
+
+/* ---- 状态 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('空 / 载入 / 错误'),
+  h('div', { style: { display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))' } },
+    h('div.well', ui.state({ kind: 'empty', title: '空空的', text: '这里还没有东西。' })),
+    h('div.well', ui.state({ kind: 'loading', title: 'LOADING', text: '正在接上 Spotify' })),
+    h('div.well', ui.state({
+      kind: 'error', icon: '⚠', title: '出了点问题',
+      text: '这个界面必须好看 —— 它是最坏情况下访客看到的东西。',
+      actions: [ui.btn({ label: '再试一次', variant: 'primary', size: 'sm' })],
+    })),
+  ),
+));
+
+/* ---- 骨架 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('骨架占位'),
+  h('div', { style: { display: 'grid', gap: '7px', maxWidth: '380px' } },
+    h('div.y2k-skeleton', { style: { height: '13px', width: '72%' } }),
+    h('div.y2k-skeleton', { style: { height: '13px', width: '48%' } }),
+    h('div.y2k-skeleton', { style: { height: '86px' } }),
+  ),
+));
+
+/* ---- 窗口：三个真实用例，全部只用上面这些组件 ---- */
+add(ui.divider(), ui.section(
+  ui.legend('窗口'),
+  ui.note('弹窗、标题栏、拖动、Esc 关闭、焦点关在窗口里 —— 都在 ui.window() 里。'),
+  h('div.demo', { style: { marginTop: '10px' } },
+    ui.btn({ label: '播放器', variant: 'primary', onClick: async () => {
+      const { openPlayer } = await import('./player.js');
+      openPlayer();
+    } }),
+    ui.btn({ label: '许愿页面（空壳）', onClick: openWish }),
+    ui.btn({ label: '简历页（空壳）', onClick: openResume }),
+    ui.btn({ label: '一个小对话框', variant: 'ghost', onClick: openConfirm }),
+  ),
+));
+
+/* ===========================================================================
+ * 通用性验收：「随便拿一个去搭一个许愿页面的空壳，不用改组件代码」
+ * 下面三个窗口没有一行碰过 ui.css / ui.js，也没有一个 .y2k-* 之外的类。
+ * ========================================================================= */
+
+function openWish() {
+  const win = ui.window({ title: 'WISH', sub: '许愿', width: '480px', height: '460px' });
+  win.setView(
+    ui.scroll(
+      ui.section(
+        ui.legend('放一个愿望进海里'),
+        h('div', { style: { display: 'grid', gap: '12px' } },
+          ui.field({ label: '写点什么', textarea: true,
+                     placeholder: '想说的话，会变成一个泡泡飘在海里……',
+                     hint: '最多 60 个字。会存在浏览器里，不会上传。' }),
+          h('div.demo', ui.tag({ label: '○ 圆圈' }), ui.tag({ label: '♡ 爱心', variant: 'blush' }),
+                        ui.tag({ label: '猫', variant: 'quiet' }), ui.tag({ label: '狗', variant: 'quiet' })),
+        ),
+      ),
+      ui.divider(),
+      ui.section(
+        ui.legend('别人放过的'),
+        ui.list([
+          ui.row({ index: 1, title: '希望明年也能来这片海', sub: '3 小时前', meta: '♡ 12' }),
+          ui.row({ index: 2, title: '想把这首歌听完',       sub: '昨天',     meta: '♡ 4'  }),
+          ui.row({ index: 3, title: '别再下雨了',           sub: '3 天前',   meta: '♡ 31' }),
+        ]),
+      ),
+    ),
+  );
+  win.setFooter(ui.note('泡泡会慢慢浮上去。'), ui.spacer(),
+                ui.btn({ label: '放进海里', variant: 'primary', onClick: () => win.close() }));
+}
+
+function openResume() {
+  const win = ui.window({ title: 'ABOUT', sub: '关于我', width: '600px', height: '480px', fixedHeight: true });
+  win.setView(
+    ui.scroll(
+      ui.section(
+        ui.legend('现在'),
+        ui.list([
+          ui.row({ title: 'Stanford', sub: '在读', meta: '2024 –', static: true }),
+        ]),
+        ui.legend('做过的东西'),
+        ui.list([
+          ui.row({ title: 'A Cocktail', sub: '调酒网站', meta: '↗' }),
+          ui.row({ title: '花火大会',   sub: '待定',     meta: '↗' }),
+        ]),
+      ),
+    ),
+  );
+  win.setFooter(ui.spacer(), ui.btn({ label: '下载 PDF', ext: true, href: '#' }));
+}
+
+function openConfirm() {
+  const win = ui.window({ title: 'CONFIRM', width: '360px', height: 'auto', draggable: false });
+  win.setView(ui.section(ui.state({
+    kind: 'empty', icon: '？', title: '真的要戳破吗',
+    text: '这个泡泡里写着别人的愿望。',
+  })));
+  win.setFooter(ui.spacer(),
+    ui.btn({ label: '算了', variant: 'ghost', onClick: () => win.close() }),
+    ui.btn({ label: '戳破', variant: 'primary', onClick: () => win.close() }));
+}
+</script>
+</body>
+</html>

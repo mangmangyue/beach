@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>音乐层 · 播放器预览</title>
+<link rel="stylesheet" href="../共用/ui.css">
+<style>
+  /* 这一页是验收台，不是共享代码 —— 这里的样式不要抄进 ui.css。
+   * 背景照 共用/constitution.js 的 bgTop / bgMid / bgBot 抄了一份，
+   * 好让播放器在接近真实场景的暗底上被判断。 */
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(70% 40% at 76% 16%, rgba(255,196,150,.30) 0%, transparent 62%),
+      radial-gradient(120% 80% at 50% 108%, rgba(230,207,195,.55) 0%, transparent 60%),
+      linear-gradient(180deg, #101B31 0%, #1E2F5C 22%, #3E6091 46%, #6C98C8 70%, #E6CFC3 100%);
+    font: 13px/1.6 -apple-system, "PingFang SC", sans-serif;
+    color: #DCE9F5;
+    overflow: hidden;
+  }
+  /* 沙滩的地平线 + 一道浪 —— 玻璃要有东西可以透，空白背景看不出材质。
+   * 这些只是验收台的布景，真场景在 共用/环境预览.html。 */
+  body::after {
+    content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 34%;
+    background:
+      repeating-linear-gradient(96deg, rgba(255,255,255,.05) 0 3px, transparent 3px 9px),
+      linear-gradient(180deg, rgba(205,212,214,0), rgba(214,220,220,.62));
+    pointer-events: none;
+  }
+
+  /* 布景元素全部靠边站 —— 别挡在窗口正后方，不然没法判断玻璃 */
+  .stage {
+    position: fixed; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 22px 20px 26px;
+    pointer-events: none;
+  }
+  .stage > * { pointer-events: auto; }
+  .stage h1 {
+    margin: 0 0 5px; font-size: 12px; font-weight: 600;
+    letter-spacing: .32em; text-transform: uppercase;
+    color: #BCD4EA; text-shadow: 0 1px 8px rgba(0,0,0,.5);
+  }
+  .stage p { margin: 0; font-size: 11.5px; color: #93AECB; text-align: center; }
+  .stage #mat { pointer-events: auto; }
+  .stage .bottom {
+    margin-top: auto; display: flex; flex-direction: column;
+    align-items: center; gap: 14px;
+  }
+
+  /* 假唱机：一个会转的圆盘。真的唱机在 标杆物件_唱机/，那是窗口 B 的东西。
+   * 这里只是为了验证「唱机不持有音频状态，只订阅 audio.on('change')」这条契约。 */
+  .deck {
+    width: 104px; height: 104px; margin: 0 auto;
+    border-radius: 50%; cursor: pointer;
+    background:
+      radial-gradient(circle at 50% 50%, #F0BFA0 0 13%, transparent 13.5%),
+      repeating-radial-gradient(circle at 50% 50%, #14161C 0 2px, #1D2028 2px 4px);
+    border: 2px solid rgba(190,215,235,.45);
+    box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 26px rgba(150,205,240,.22);
+    animation: spin 3.4s linear infinite;
+    animation-play-state: paused;
+  }
+  .deck.is-spinning { animation-play-state: running; }
+  .deck:hover { border-color: rgba(220,240,255,.8); }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* 唱机看到的状态 —— 窗口 B 只能读到这些字段 */
+  .readout {
+    position: fixed; left: 16px; bottom: 14px; z-index: 2;
+    padding: 9px 13px;
+    font: 10.5px/1.75 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-align: left; color: #9FC0DC; white-space: pre-line;
+    background: rgba(8,18,32,.55);
+    border: 1px solid rgba(159,192,220,.35); border-radius: 8px;
+    backdrop-filter: blur(3px);
+  }
+  .readout b { color: #DCEEFA; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="stage y2k">
+  <h1>音乐层 · 验收台</h1>
+  <p>点唱机 → 播放器窗口。唱片转不转，完全由 <code>audio.state.playing</code> 驱动。</p>
+
+  <!-- 材质 A/B：两套随时切，组件代码一行都没变 -->
+  <div class="y2k-tabs" id="mat" style="margin-top:14px;min-width:250px">
+    <button class="y2k-tab is-active" data-mat="glass">玻璃</button>
+    <button class="y2k-tab" data-mat="bubble">泡泡</button>
+  </div>
+  <p id="matnote" style="margin-top:7px;max-width:34em"></p>
+
+  <div class="bottom">
+    <div class="deck" id="deck" role="button" tabindex="0" aria-label="打开播放器"></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;justify-content:center">
+      <button class="y2k-btn y2k-btn--primary" id="open">打开播放器</button>
+      <button class="y2k-btn" id="wish">许愿弹窗（同一套组件）</button>
+      <a class="y2k-btn y2k-btn--ghost" href="./UI组件预览.html">UI 组件总览</a>
+    </div>
+  </div>
+</div>
+
+<div class="readout" id="readout">audio.state 载入中…</div>
+
+<script type="module">
+import { openPlayer } from './player.js';
+import { audio } from '../共用/audio.js';
+import { ui, h } from '../共用/ui.js';
+
+/* 首次点击解锁音频（浏览器禁止未交互就出声）。
+ * 真站上这件事由加载页那个 [ ENTER ] 按钮做。 */
+audio.autoUnlock();
+
+/* ——— 材质切换 ——— */
+const NOTE = {
+  glass:  '玻璃：有厚度、有重量、边缘硬朗。几乎不模糊 —— 看得清背后是什么，'
+        + '可读性靠「压暗」不靠「糊」。背景的变形全部来自边缘折射。',
+  bubble: '泡泡：沿用场景里许愿泡泡的语言。完全不模糊、几乎全透，'
+        + '只有一圈软的虹彩菲涅尔边 + 中间一团内核光。没有重量，随时会破。',
+};
+const matBar = document.getElementById('mat');
+const matNote = document.getElementById('matnote');
+function setMat(name) {
+  ui.setMaterial(name);
+  ui.top?.setMaterial?.(name);
+  for (const b of matBar.children) b.classList.toggle('is-active', b.dataset.mat === name);
+  matNote.textContent = NOTE[name];
+  try { localStorage.setItem('y2k-mat', name); } catch { /* 无痕模式，随它 */ }
+}
+matBar.onclick = e => { const b = e.target.closest('[data-mat]'); if (b) setMat(b.dataset.mat); };
+setMat((() => { try { return localStorage.getItem('y2k-mat') || 'glass'; } catch { return 'glass'; } })());
+
+const deck = document.getElementById('deck');
+const readout = document.getElementById('readout');
+
+const open = () => openPlayer();
+document.getElementById('open').onclick = open;
+deck.onclick = open;
+deck.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+
+/* ——— 唱机侧的全部代码就是这几行 ———
+ * 它不知道 Spotify 存在，也不持有任何音频状态。 */
+audio.on('change', s => {
+  deck.classList.toggle('is-spinning', s.playing);
+  readout.innerHTML =
+    `trackId  <b>${s.trackId || '—'}</b>\n` +
+    `title    <b>${s.title || '—'}</b>\n` +
+    `artist   <b>${s.artist || '—'}</b>\n` +
+    `playing  <b>${s.playing}</b>\n` +
+    `position <b>${s.position.toFixed(1)}s / ${s.duration.toFixed(1)}s</b>\n` +
+    `ready    <b>${s.ready}</b>   ducked <b>${audio.ducked}</b>`;
+});
+audio._pushMusicState({});   // 先画一次初始状态
+
+/* ——— 通用性验收 ———
+ * 「随便拿一个去搭一个许愿页面的空壳，不用改组件代码」。
+ * 下面这一段没有一行是播放器专用的，也没碰任何 .y2k-* 之外的类。 */
+document.getElementById('wish').onclick = () => {
+  const text = ui.field({
+    label: '写点什么', textarea: true,
+    placeholder: '想说的话，会变成一个泡泡飘在海里……',
+    hint: '最多 60 个字。',
+  });
+  const win = ui.window({ title: 'WISH', sub: '许愿', width: '460px', height: '420px' });
+  win.setView(
+    ui.scroll(
+      ui.section(
+        ui.legend('放一个愿望进海里'),
+        text,
+      ),
+      ui.divider(),
+      ui.section(
+        ui.legend('别人放过的'),
+        ui.list([
+          ui.row({ index: 1, title: '希望明年也能来这片海', sub: '3 小时前', meta: '♡ 12' }),
+          ui.row({ index: 2, title: '想把这首歌听完',       sub: '昨天',     meta: '♡ 4'  }),
+          ui.row({ index: 3, title: '别再下雨了',           sub: '3 天前',   meta: '♡ 31' }),
+        ]),
+      ),
+    ),
+  );
+  win.setFooter(
+    ui.note('会存在浏览器里，不会上传。'),
+    ui.spacer(),
+    ui.btn({ label: '放进海里', variant: 'primary', onClick: () => win.close() }),
+  );
+};
+</script>
+</body>
+</html>

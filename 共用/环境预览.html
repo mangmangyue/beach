@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>白沙海底 · 环境预览</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:#05070C;overflow:hidden;
+    font:12px/1.5 -apple-system,"PingFang SC",sans-serif;color:#8b93a1}
+  #view{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  #view:active{cursor:grabbing}
+  #tip{position:fixed;left:14px;bottom:12px;font-size:10.5px;letter-spacing:.06em;
+    color:#6d7684;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;
+    font-size:11px;letter-spacing:.22em;color:#7d8694}
+</style>
+<link rel="stylesheet" href="./ui.css">
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="loading">载入中</div>
+<div id="tip">浪会把垫子外的沙打湿 ｜ 点<b>唱机</b>放歌 ｜ 点<b>相机</b>看照片 ｜ 点<b>猫猫</b>许愿 ｜ 点<b>泡泡</b>戳破 ｜ 点小螃蟹它会跑开、点乌龟它缩头、点章鱼它吐泡泡 ｜ 拖<b>贝壳</b>＝小小的推沙 ｜ 拖<b>空处</b>＝转视角（±90°）｜ 滚轮缩放 ｜ 右下角「✦ 视觉参数」自己调</div>
+<script type="module">
+/* 环境验收页 —— 阶段 1.5 的交付物之一。
+ * 把两个真模型（唱机、酒瓶插花，只读引用）放进白沙海底，
+ * 加一台占位笔电（屏幕 = 唯一光源）和一只灵魂体小熊（透光材质 · 灵魂档）。
+ * 物件自己的 viewer 不动，材质分配按 规格 第四节的表。 */
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createStage } from './stage.js';
+import { grade, gradeImageData, ENV, SCREEN_BGS } from './constitution.js';
+import { registerEnvI } from './光照.js';
+import { loadShells } from './scene/shells.js';
+import { loadFlowers } from './scene/flowers.js';
+import { loadCocktail } from './scene/cocktail.js';
+import { loadCritters } from './scene/critters.js';
+import { loadDevices } from './scene/devices.js';
+import { loadGuitar } from './scene/guitar.js';
+import { refreshRim, blobShadow } from './scene/util.js';
+import { vinylTint, drawVinylBody } from './scene/彩胶.js';
+import { TOUCHBAR, LIT_MIN, LIT_MAX, setSoundMuted } from './scene/键盘.js';
+import { openPlayer } from '../音乐层/player.js';
+import { ui, h } from './ui.js';
+import { openGallery } from './相册.js';
+import { ALBUMS } from '../音乐层/albums.js';
+import { audio } from './audio.js';
+import { WAVE_SOUND } from './浪声参数.js';
+
+const canvas = document.getElementById('view');
+const stage = createStage(canvas, {
+  target: new THREE.Vector3(0, 0.10, -0.05),
+  distance: 1.9,
+  azimuth: 0.16,            // 默认正对电脑屏幕和浪打来的方向，只偏一点点 3/4
+  shells: false,            // 用 物件_贝壳/ 的真贝壳库，不要 stage 自带的程序化贝壳
+});
+stage.enableSandDrag();   // 现在只有贝壳可推（主物件都坐在野餐垫上，不注册陷沙）
+/* 兔子光标**暂时下线**（Iris 08-30：「太花里胡哨，继续搞意义不大」）。
+ * 代码和素材都留着：共用/光标.js（程序画版）+ 共用/光标/*.png（手绘切片版）。
+ * 想恢复：initBunnyCursor(canvas) + stage.setCursorHook(k => bunny.setGrab(k))，
+ * 并把下面 hover 那两处 canvas.style.cursor 换回 bunny.setHover / setHoverAux。 */
+
+/* ================= 野餐垫 ——「桌子概念」=================
+ * 主物件（电脑、唱机、酒瓶、封套、小熊）坐在垫子上，不陷沙、不可拖；
+ * 垫子本身把沙压出一圈浅浅的边，布面顺着沙丘微微起伏。 */
+// lift = 布面架在（抹平过的）沙上方多少；floor = 布面离沙**至少**要留多少。
+// floor 是条硬规矩：沙 < 垫子 < 垫上的东西。压痕再深也只能压到贴着沙为止。
+const BLANKET = { x: 0.02, z: -0.04, w: 1.9, h: 1.4, lift: 0.006, floor: 0.002 };
+{
+  const S = stage.envScale;
+  // 垫子把沙压下去一点（两个浅坑盖住长方形），要在采样 sandY 之前登记
+  stage.sand.addDent((BLANKET.x - 0.45) / S, BLANKET.z / S, 4.2, 0.03);
+  stage.sand.addDent((BLANKET.x + 0.48) / S, BLANKET.z / S, 4.2, 0.03);
+}
+const inBlanket = (x, z, pad = 0.06) => Math.abs(x - BLANKET.x) < BLANKET.w / 2 + pad && Math.abs(z - BLANKET.z) < BLANKET.h / 2 + pad;
+/* 褶皱：照 真实照片/褶皱感.HEIC —— 不是细碎的褶，是几道**长而柔的缎面脊**，
+ * 像几条河一样蜿蜒，宽、软、过渡平滑。所以是平滑着色 + 低频的长脊，再叠极轻的细纹。 */
+const RIDGES = [
+  { a: -0.28, amp: 0.12, f: 3.6, p: 0.4, w: 0.11, hh: 0.030, along: 'z' },
+  { a:  0.40, amp: 0.14, f: 2.7, p: 2.1, w: 0.09, hh: 0.024, along: 'z' },
+  { a:  0.18, amp: 0.10, f: 4.2, p: 1.0, w: 0.08, hh: 0.020, along: 'x' },
+  { a: -0.45, amp: 0.08, f: 5.0, p: 3.0, w: 0.07, hh: 0.014, along: 'x' },
+];
+function blanketFold(lx, lz) {
+  let h = 0;
+  for (const R of RIDGES) {
+    const s = R.along === 'z' ? lz : lx, t = R.along === 'z' ? lx : lz;
+    const center = R.a + Math.sin(s * R.f + R.p) * R.amp + Math.sin(s * R.f * 2.3 + R.p * 1.7) * R.amp * 0.3;
+    const d = (t - center) / R.w;
+    const env = 0.55 + 0.45 * Math.sin(s * 2.1 + R.p);          // 脊沿长度有强有弱、会消失再出现
+    h += R.hh * Math.exp(-d * d) * Math.max(0, env);
+  }
+  h += (Math.sin(lx * 11 + lz * 7) + Math.sin(lx * 19 - lz * 13)) * 0.0007;   // 极轻的细纹
+  // 边角微翘。ex/ez 必须夹到 1：pow(·, 8) 在垫子外面会指数爆炸
+  // （吉他的包围盒角点探到垫外 20cm 时这一项就有 6cm，把吉他顶到半空 —— 踩过的坑）
+  const ex = Math.min(1, Math.abs(lx) / (BLANKET.w / 2)), ez = Math.min(1, Math.abs(lz) / (BLANKET.h / 2));
+  h += Math.pow(Math.max(ex, ez), 8) * 0.012 * (0.4 + 0.6 * Math.abs(Math.sin(lx * 5.3 + lz * 3.1)));
+  return h;
+}
+/* 布边的不规则：几层值噪声叠起来，幅度 ≈ 1cm，没有固定周期 */
+const hash1 = x => { const s = Math.sin(x * 127.1) * 43758.5453; return s - Math.floor(s); };
+const vnoise1 = x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash1(i) * (1 - u) + hash1(i + 1) * u; };
+const edgeNoise = s => (vnoise1(s * 2.1) - 0.5) * 0.018 + (vnoise1(s * 6.3 + 11) - 0.5) * 0.008 + (vnoise1(s * 17 + 5) - 0.5) * 0.003;
+/* 压布场（"垫子的重力"）：每个垫上物件按脚印把布压下去几毫米，并把身下的褶皱压平。
+ * pressers 由排版系统维护（物件动了就更新 + 重建布面网格）。 */
+const pressers = [];   // { x, z, hx, hz, rot, depth }：脚印是物件自己的朝向矩形，不是世界包围盒
+/* 世界坐标 → 某个脚印的局部坐标（把绕 y 轴的 rot 转回去） */
+function toPress(p, x, z) {
+  const dx = x - p.x, dz = z - p.z;
+  const c = Math.cos(p.rot), s = Math.sin(p.rot);
+  return [dx * c - dz * s, dx * s + dz * c];
+}
+function pressAt(x, z) {
+  let dip = 0, flat = 0, cover = 0;
+  for (const p of pressers) {
+    const k = coverAt(p, x, z);      // 1 = 正压在物件轮廓底下，往外三格化开到 0
+    if (k <= 0) continue;
+    dip += p.dip * k;
+    flat = Math.max(flat, p.flat * k);
+    cover = Math.max(cover, k);
+  }
+  return [Math.min(dip, 0.012), flat, cover];   // 叠加封顶；真正的下限由 blanketTop 的 floor 兜
+}
+/* 布面高度（世界坐标）。垫子上的所有东西都按它落位 */
+/* 布贴不住沙：布面跟的是「抹平过的沙」（周围 5 点平均），沙的小起伏被布架空 ——
+ * 褶皱就是布和沙之间那点对不上产生的 */
+const sandSmooth = (x, z) => (stage.sandY(x, z) * 2 + stage.sandY(x + 0.12, z) + stage.sandY(x - 0.12, z) + stage.sandY(x, z + 0.12) + stage.sandY(x, z - 0.12)) / 6;
+const blanketTop = (x, z) => {
+  const [dip, flat] = pressAt(x, z);
+  const sand = stage.sandY(x, z);
+  const h = Math.max(sandSmooth(x, z), sand - 0.004) + BLANKET.lift
+          + blanketFold(x - BLANKET.x, z - BLANKET.z) * (1 - flat)   // 压得住的地方褶皱才消失
+          - dip;                                                     // 压痕
+  // 布永远在沙上面。压痕（吉他 7mm、唱机 6mm）比 lift 还深，沙面又有起伏，
+  // 不封这一刀的话重物底下的布会沉到沙面以下 —— 画面上就是沙从垫子里冒出来。
+  // 压到贴着沙就压不动了，剩下的力气该由沙自己承担（真实世界也是这样）。
+  return Math.max(h, sand + BLANKET.floor);
+};
+function ginghamTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  const line = ENV.blanketLine.replace('#', '');
+  const [lr, lg, lb] = [0, 2, 4].map(i => parseInt(line.substr(i, 2), 16));
+  x.fillStyle = ENV.blanketBase; x.fillRect(0, 0, 128, 128);
+  x.fillStyle = `rgba(${lr},${lg},${lb},${ENV.blanketLineA / 100})`;   // 格纹：两个方向各画一遍，交叉处自然更深
+  for (let i = 0; i < 4; i++) x.fillRect(i * 32 + 18, 0, 14, 128);
+  for (let i = 0; i < 4; i++) x.fillRect(0, i * 32 + 18, 128, 14);
+  // 不过调色变换：变换会把白压灰，垫子就"脏"了、和别的东西不在一个图层（Iris 08-22）
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(6.5, 4.8);
+  t.anisotropy = 4;
+  return t;
+}
+let clothMat = null;
+stage.onParams(() => {            // 面板里改了垫子的颜色/格纹/提亮 → 重画贴图
+  if (!clothMat) return;
+  clothMat.map?.dispose(); clothMat.map = ginghamTexture(); clothMat.emissiveIntensity = ENV.blanketGlow / 100; clothMat.needsUpdate = true;
+});
+let rebuildBlanket = () => {};
+/* 布面顶点的快照：xz（世界坐标，含布边抖动）+ 高度。
+ * 物件落位直接查这张表 —— 查的就是画面里那张布本身，
+ * 而不是另外解析采样一遍。三角面是线性的，顶点都在物件下面 ⇒ 整个面都在下面，
+ * 「布从吉他中间穿出来」这件事从此在构造上不可能发生。 */
+const CLOTH = { nx: 72, nz: 52, x: null, z: null, y: null };
+{
+  const geo = new THREE.PlaneGeometry(BLANKET.w, BLANKET.h, 72, 52);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  const baseXZ = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) { baseXZ[i * 2] = pos.getX(i); baseXZ[i * 2 + 1] = pos.getZ(i); }
+  const col = new Float32Array(pos.count * 3).fill(1);
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  CLOTH.x = new Float32Array(pos.count);
+  CLOTH.z = new Float32Array(pos.count);
+  CLOTH.y = new Float32Array(pos.count);
+  rebuildBlanket = () => {
+    for (let i = 0; i < pos.count; i++) {
+      let lx = baseXZ[i * 2], lz = baseXZ[i * 2 + 1];
+      pos.setY(i, blanketTop(lx + BLANKET.x, lz + BLANKET.z));
+      const ex = Math.abs(lx) / (BLANKET.w / 2), ez = Math.abs(lz) / (BLANKET.h / 2);
+      if (ex > 0.999 || ez > 0.999) {              // 布边：不规则的小进出（不是规整的波浪）
+        const s = ex > 0.999 ? lz : lx;
+        const j = edgeNoise(s + (ex > 0.999 ? 3.1 : 7.7) * Math.sign(ex > 0.999 ? lx : lz));
+        if (ex > 0.999) pos.setX(i, lx + Math.sign(lx) * j);
+        if (ez > 0.999) pos.setZ(i, lz + Math.sign(lz) * j);
+      }
+      CLOTH.x[i] = pos.getX(i) + BLANKET.x;
+      CLOTH.z[i] = pos.getZ(i) + BLANKET.z;
+      CLOTH.y[i] = pos.getY(i);
+    }
+    bakeShade();
+    pos.needsUpdate = true;
+    geo.attributes.color.needsUpdate = true;
+    geo.computeVertexNormals();
+  };
+
+  /* 褶皱的明暗 —— 烘进顶点色。
+   *
+   * 为什么不能只靠 three 的实时光照：这个场景里超过一半的光是**环境光**
+   * （半球光 0.5 + 环境贴图 0.4，对主光 0.7）。环境光没有遮蔽，照哪儿都一样亮 ——
+   * 布面的法线明明有 45° 的起伏，画出来却是平的。原来那份烘焙只有 ±5%，等于没有。
+   *
+   * 两项：
+   *   遮蔽（主项）—— 比周围低的地方看不见天空，环境光进不去，所以谷底暗
+   *   受光（次项）—— N·L，和沙的着色器、stage 的主光同一个方向
+   * 两项都乘 ENV.blanketShade，面板「野餐垫 · 褶皱明暗」直接拖。 */
+  const W = 72, H = 52, NX = W + 1;
+  const at = (i, j) => Math.min(H, Math.max(0, j)) * NX + Math.min(W, Math.max(0, i));
+  function bakeShade() {
+    const k = (ENV.blanketShade ?? 100) / 100;
+    const d = stage.sunDir();                 // 全场同一个太阳（面板「光 · 太阳方位角/高度角」）
+    const L = [d.x, d.y, d.z];
+    const R = 3;                       // 遮蔽的采样半径（格）≈ 8cm ≈ 一道脊的宽度
+    for (let j = 0; j <= H; j++) for (let i = 0; i <= W; i++) {
+      const n = at(i, j), y = CLOTH.y[n];
+      // 遮蔽：邻域平均高度比自己高多少 —— 越低越在谷里
+      let sum = 0, cnt = 0;
+      for (let dj = -R; dj <= R; dj += R) for (let di = -R; di <= R; di += R) {
+        sum += CLOTH.y[at(i + di, j + dj)]; cnt++;
+      }
+      const ao = Math.min(1, Math.max(0, (sum / cnt - y) / 0.011));
+      // 受光：有限差分求坡度 → N·L（平地时 = L.y）
+      const dx = CLOTH.x[at(i + 1, j)] - CLOTH.x[at(i - 1, j)] || 1e-4;
+      const dz = CLOTH.z[at(i, j + 1)] - CLOTH.z[at(i, j - 1)] || 1e-4;
+      const gx = (CLOTH.y[at(i + 1, j)] - CLOTH.y[at(i - 1, j)]) / dx;
+      const gz = (CLOTH.y[at(i, j + 1)] - CLOTH.y[at(i, j - 1)]) / dz;
+      const inv = 1 / Math.hypot(gx, 1, gz);
+      const ndl = (-gx * L[0] + L[1] - gz * L[2]) * inv;
+      const v = 1 - ao * 0.40 * k + (ndl - L[1]) * 0.55 * k;
+      col[n * 3] = col[n * 3 + 1] = col[n * 3 + 2] = Math.min(1.15, Math.max(0.45, v));
+    }
+  }
+  rebuildBlanket();
+  clothMat = new THREE.MeshStandardMaterial({
+    map: ginghamTexture(), roughness: 0.55, metalness: 0, flatShading: false, vertexColors: true,
+    emissive: new THREE.Color('#FFFFFF'), emissiveIntensity: ENV.blanketGlow / 100,   // 一点自发光把布从沙里"提"出来
+  });
+  // 自发光默认是**平加**上去的，会把烘好的褶皱明暗冲淡（提亮 23 就冲掉快三成）。
+  // 让它也乘上顶点色：布还是被"提"出来了，但谷底依然是谷底。
+  clothMat.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance *= vColor;');
+  };
+  clothMat.customProgramCacheKey = () => 'blanketCloth';
+  const blanket = new THREE.Mesh(geo, clothMat);
+  blanket.position.set(BLANKET.x, 0, BLANKET.z);
+  blanket.userData.noSink = true;
+  stage.world.add(blanket);
+  /* 「厚度侧裙」已删（Iris 08-29）：原来沿布边建一圈 4mm 侧面，但它是按**建垫子那一刻**
+   * 的顶点快照建的，压布场之后持续改布面高度，侧裙跟不上，就脱开成一条悬空的线。
+   * 与其每帧同步一圈顶点，不如不要 —— 布本来也就一两毫米厚。 */
+}
+/* 物件的脚印 —— 用真实轮廓，不用包围盒。
+ *
+ * 为什么不能用包围盒：吉他是葫芦形、还转了 -38°，世界包围盒会胖成一个 1.0×1.0 的方块。
+ * 拿方块当脚印有两个后果，都见过：琴腰两侧本来没被压住的褶皱被一起压平了；
+ * 而方块角上（那里根本没有琴）恰好压着一道褶皱脊，落位取「脚印内最高点」时
+ * 就被这道脊顶起来 —— 吉他浮在半空 5cm，或者反过来，脊从琴身中间穿出来。
+ *
+ * 做法：把物件所有三角面往 xz 平面拍扁，栅格化成一张小位图（物件自己的朝向下算），
+ * 再往外扩散出一圈 0→1 的软边当压布的过渡。24k 个三角形，每次重排版几毫秒。 */
+const boxOf = (obj, b = new THREE.Box3(), tmp = new THREE.Box3()) => {
+  b.makeEmpty();
+  obj.traverse(o => {
+    if (!o.isMesh || o.userData.noBounds || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    tmp.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+    b.union(tmp);
+  });
+  return b;
+};
+const FP_RES = 48;        // 遮罩沿长边的格数
+const FP_FEATHER = 3;     // 软边扩散几格（压痕从轮廓往外化开）
+function footprintOf(obj) {
+  const rot = obj.rotation.y;
+  obj.rotation.y = 0;                       // 先转正：量出来的就是物件自己的长宽
+  obj.updateWorldMatrix(true, true);
+  const b = boxOf(obj);
+  if (b.isEmpty()) { obj.rotation.y = rot; obj.updateWorldMatrix(true, true); return null; }
+  const hx = Math.max((b.max.x - b.min.x) / 2, 0.02);
+  const hz = Math.max((b.max.z - b.min.z) / 2, 0.02);
+  const bx = (b.min.x + b.max.x) / 2, bz = (b.min.z + b.max.z) / 2;
+  // ---- 栅格化：三角面拍扁进 nx×nz 的位图 ----
+  const nx = Math.max(4, Math.round(FP_RES * Math.min(1, hx / Math.max(hx, hz))));
+  const nz = Math.max(4, Math.round(FP_RES * Math.min(1, hz / Math.max(hx, hz))));
+  const cov = new Float32Array(nx * nz);
+  const gx = v => (v - bx + hx) / (2 * hx) * nx;   // 局部 x → 格
+  const gz = v => (v - bz + hz) / (2 * hz) * nz;
+  const va = new THREE.Vector3(), vb = new THREE.Vector3(), vc = new THREE.Vector3();
+  obj.traverse(o => {
+    if (!o.isMesh || o.userData.noBounds || !o.geometry) return;
+    const g = o.geometry, pa = g.attributes.position, idx = g.index;
+    const n = idx ? idx.count : pa.count;
+    for (let t = 0; t < n; t += 3) {
+      const i0 = idx ? idx.getX(t) : t, i1 = idx ? idx.getX(t + 1) : t + 1, i2 = idx ? idx.getX(t + 2) : t + 2;
+      va.fromBufferAttribute(pa, i0).applyMatrix4(o.matrixWorld);
+      vb.fromBufferAttribute(pa, i1).applyMatrix4(o.matrixWorld);
+      vc.fromBufferAttribute(pa, i2).applyMatrix4(o.matrixWorld);
+      const ax = gx(va.x), az = gz(va.z), bx2 = gx(vb.x), bz2 = gz(vb.z), cx2 = gx(vc.x), cz2 = gz(vc.z);
+      let i0g = Math.floor(Math.min(ax, bx2, cx2)), i1g = Math.ceil(Math.max(ax, bx2, cx2));
+      let j0g = Math.floor(Math.min(az, bz2, cz2)), j1g = Math.ceil(Math.max(az, bz2, cz2));
+      i0g = Math.max(0, i0g); i1g = Math.min(nx - 1, i1g);
+      j0g = Math.max(0, j0g); j1g = Math.min(nz - 1, j1g);
+      const d = (bz2 - cz2) * (ax - cx2) + (cx2 - bx2) * (az - cz2);
+      for (let j = j0g; j <= j1g; j++) for (let i = i0g; i <= i1g; i++) {
+        if (cov[j * nx + i] === 1) continue;
+        // 细长三角形可能一个格心都盖不到 —— 面积退化时退回「包围格全标」
+        if (Math.abs(d) < 1e-12) { cov[j * nx + i] = 1; continue; }
+        const px = i + 0.5, pz = j + 0.5;
+        const l1 = ((bz2 - cz2) * (px - cx2) + (cx2 - bx2) * (pz - cz2)) / d;
+        const l2 = ((cz2 - az) * (px - cx2) + (ax - cx2) * (pz - cz2)) / d;
+        const l3 = 1 - l1 - l2;
+        if (l1 >= -0.5 && l2 >= -0.5 && l3 >= -0.5) cov[j * nx + i] = 1;   // −0.5 容差：一格宽的琴颈也不漏
+      }
+    }
+  });
+  obj.rotation.y = rot;
+  obj.updateWorldMatrix(true, true);
+  // ---- 软边：从轮廓往外化开 FP_FEATHER 格 ----
+  const solid = Uint8Array.from(cov, v => (v >= 1 ? 1 : 0));
+  const step = 1 / (FP_FEATHER + 1);
+  for (let pass = 0; pass < FP_FEATHER; pass++) {
+    const src = Float32Array.from(cov);
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+      if (src[j * nx + i] >= 1) continue;
+      let mx = src[j * nx + i];
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const jj = j + dj, ii = i + di;
+        if (jj < 0 || jj >= nz || ii < 0 || ii >= nx) continue;
+        mx = Math.max(mx, src[jj * nx + ii] - step);
+      }
+      cov[j * nx + i] = mx;
+    }
+  }
+  const c = Math.cos(rot), s = Math.sin(rot);
+  const ox = bx - obj.position.x, oz = bz - obj.position.z;
+  return {
+    x: obj.position.x + ox * c + oz * s, z: obj.position.z - ox * s + oz * c,
+    hx, hz, rot, nx, nz, cov, solid,
+  };
+}
+/* 脚印在这一点上压得多实（0 外面 … 1 正压着） */
+function coverAt(fp, x, z) {
+  const [u, v] = toPress(fp, x, z);
+  if (Math.abs(u) > fp.hx || Math.abs(v) > fp.hz) return 0;
+  const i = Math.min(fp.nx - 1, Math.max(0, Math.floor((u + fp.hx) / (2 * fp.hx) * fp.nx)));
+  const j = Math.min(fp.nz - 1, Math.max(0, Math.floor((v + fp.hz) / (2 * fp.hz) * fp.nz)));
+  return fp.cov[j * fp.nx + i];
+}
+/* 这一点是不是真的在物件底下（轮廓内，含一格容差） */
+function underObject(fp, x, z) {
+  const [u, v] = toPress(fp, x, z);
+  if (Math.abs(u) > fp.hx || Math.abs(v) > fp.hz) return false;
+  const gi = (u + fp.hx) / (2 * fp.hx) * fp.nx, gj = (v + fp.hz) / (2 * fp.hz) * fp.nz;
+  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    const i = Math.floor(gi) + di, j = Math.floor(gj) + dj;
+    if (i < 0 || j < 0 || i >= fp.nx || j >= fp.nz) continue;
+    if (fp.solid[j * fp.nx + i]) return true;
+  }
+  return false;
+}
+/* 脚印底下的最高支撑面：垫子上查布面顶点（就是画面里那张布本身），垫子外查沙。
+ * 「按整个脚印范围的最高点算」—— 只采九个点会漏掉中间的褶皱脊；
+ * 而且查的必须是布面网格的顶点：三角面是线性的，顶点都在物件下面 ⇒ 整个面都在下面，
+ * 「布从吉他中间穿出来」在构造上就不可能了。 */
+function supportTop(fp) {
+  let top = -Infinity;
+  const R = Math.hypot(fp.hx, fp.hz);
+  if (CLOTH.y) {
+    for (let i = 0; i < CLOTH.y.length; i++) {
+      const x = CLOTH.x[i], z = CLOTH.z[i];
+      if (Math.abs(x - fp.x) > R || Math.abs(z - fp.z) > R) continue;
+      if (CLOTH.y[i] <= top) continue;
+      if (underObject(fp, x, z)) top = CLOTH.y[i];
+    }
+  }
+  // 挂在垫子外的部分（吉他的琴颈）踩的是沙
+  const c = Math.cos(fp.rot), s = Math.sin(fp.rot);
+  const N = 10;
+  for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) {
+    const u = (i / N * 2 - 1) * fp.hx, v = (j / N * 2 - 1) * fp.hz;
+    const x = fp.x + u * c + v * s, z = fp.z - u * s + v * c;
+    if (inBlanket(x, z, 0) || !underObject(fp, x, z)) continue;
+    top = Math.max(top, stage.sandY(x, z));
+  }
+  return top === -Infinity ? blanketTop(fp.x, fp.z) : top;
+}
+/* 把物件放上垫子：贴着布面坐、留一片软阴影。可重复调用（排版滑块动一下就重摆一次）。 */
+function placeOnBlanket(obj, pad = 0.004, shadow = null, fp = null, press = null) {
+  obj.userData.noSink = true;
+  obj.updateWorldMatrix(true, true);
+  const b = boxOf(obj);
+  if (b.isEmpty()) return shadow;
+  const cx = (b.min.x + b.max.x) / 2, cz = (b.min.z + b.max.z) / 2;
+  const top = supportTop(fp || footprintOf(obj) || { x: cx, z: cz, hx: 0.02, hz: 0.02, rot: 0 });
+  obj.position.y += top + pad - b.min.y;
+  if (!shadow) {
+    shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ map: stage.blobTex, color: '#5A6672', transparent: true, opacity: 0.28, depthWrite: false }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.userData.noSink = true; shadow.userData.noBounds = true;
+    stage.world.add(shadow);
+  }
+  shadow.position.set(cx, blanketTop(cx, cz) + pad * 0.75, cz);
+  const w = Math.max(b.max.x - b.min.x, b.max.z - b.min.z);
+  // 影子也跟着轻重走：重的实而紧，轻的（猫、花）淡而散
+  const w8 = press ? press.flat : PRESS_DEFAULT.flat;
+  shadow.material.opacity = 0.10 + 0.24 * w8;
+  shadow.scale.setScalar(w * (1.05 + 0.28 * w8));
+  return shadow;
+}
+
+/* ================= 排版：垫上每样东西的位置都在面板「排版」区（ENV.ttX / mbZ / gtR…）================= */
+const layoutReg = [];    // { key, obj, shadow, scaleKey? }
+function registerLayout(key, obj, opts = {}) {
+  const en = { key, obj, shadow: null, ...opts };
+  layoutReg.push(en);
+  applyOne(en);
+  settleAll();
+  return en;
+}
+/* 压布场按物件的**轻重**分档，不是一个统一的深度：
+ *   dip  = 把布压下去多少（米）
+ *   flat = 把身下的褶皱压平多少（0 完全不压 … 1 全平）
+ * 重的（吉他 / 唱机 / 电脑）压实压平；轻的（猫 / 相机 / 酒杯）几乎只是搭在褶皱上。
+ * flat 不再承担"防止布穿出来"的职责 —— 那件事由落位查布面顶点保证，
+ * 所以轻的东西可以放心地不压平。 */
+const PRESS = {
+  tt:  { dip: 0.005,  flat: 0.85 },
+  mb:  { dip: 0.004,  flat: 0.80 },
+  gt:  { dip: 0.006,  flat: 0.90 },
+  ck:  { dip: 0.0045, flat: 0.75 },   // 一杯冰饮是有分量的（Iris 2026-08-25）：压实、把身下的褶皱压平
+  cam: { dip: 0.0010, flat: 0.30 },
+  cat: { dip: 0.0004, flat: 0.12 },   // 灵魂猫是一团空心的光，几乎没有重量
+};
+const PRESS_DEFAULT = { dip: 0.0015, flat: 0.35 };
+function applyOne(en) {
+  const { key, obj } = en;
+  obj.position.x = ENV[key + 'X'] / 100;
+  obj.position.z = ENV[key + 'Z'] / 100;
+  obj.rotation.y = ENV[key + 'R'] * Math.PI / 180;
+  if (en.scaleKey) obj.scale.setScalar(ENV[en.scaleKey] / 100);
+}
+function settleAll() {
+  // 1) 按脚印更新压布场（重物把布压下去几毫米，并把身下的褶皱压平）
+  pressers.length = 0;
+  for (const en of layoutReg) {
+    en.fp = footprintOf(en.obj);
+    if (!en.fp) continue;
+    pressers.push({ ...en.fp, ...(PRESS[en.key] ?? PRESS_DEFAULT) });
+  }
+  // 2) 布按新的压布场重建（这一步之后 CLOTH 里就是画面上那张布的每个顶点）
+  rebuildBlanket();
+  // 3) 物件贴着压过的布面落位：高度 = 脚印范围内布面顶点的最高点
+  for (const en of layoutReg) en.shadow = placeOnBlanket(en.obj, en.pad ?? 0.004, en.shadow, en.fp, PRESS[en.key] ?? PRESS_DEFAULT);
+  applySun();
+}
+let sunReg = null;       // 向日葵一束：{ items: [{obj, shadow, spot}] }
+function applySun() {
+  if (!sunReg) return;
+  const a = ENV.sunR * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+  for (const it of sunReg) {
+    const ox = it.spot.x, oz = it.spot.z;
+    it.obj.position.x = ENV.sunX / 100 + ox * ca - oz * sa;
+    it.obj.position.z = ENV.sunZ / 100 + ox * sa + oz * ca;
+    it.obj.rotation.y = (it.spot.rot ?? 0) + a;
+    it.shadow = placeOnBlanket(it.obj, 0.002, it.shadow, null, { dip: 0.0003, flat: 0.10 });   // 花很轻
+  }
+}
+stage.onParams(() => { layoutReg.forEach(applyOne); settleAll(); });
+
+const { ice, solid, screen } = stage.materials;   // screen 留给以后可能的占位件
+const tickers = [];   // 每帧动效（唱片转、花晃）—— 场景永远在轻微地动
+// 调试用把手（控制台里量布面和落位用；页面本身不依赖它）：
+//   __scene.layoutReg.find(e => e.key === 'gt').fp   吉他的脚印遮罩
+//   __scene.CLOTH                                    布面每个顶点的 xz / 高度
+window.__scene = { tickers, stage, BLANKET, CLOTH, blanketTop, blanketFold, pressAt, pressers, layoutReg, footprintOf, supportTop };
+
+/* ---- 贴图：解码 → 逐像素过 grade() → 上传（和物件 viewer 同一条路） ---- */
+function loadTex(path, onReady, { raw = false, flip = false } = {}) {
+  const img = new Image();
+  img.onerror = () => console.warn('贴图加载失败:', path);
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, c.width, c.height);
+    ctx.putImageData(raw ? data : gradeImageData(data), 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.flipY = flip;                      // glb 的 UV 已经翻过 V
+    t.magFilter = THREE.LinearFilter;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.anisotropy = 4;
+    onReady(t);
+  };
+  img.src = encodeURI(path);
+}
+const setMap = mat => t => { mat.map = t; mat.needsUpdate = true; };
+const setIceMap = mat => t => { mat.uniforms.uMap.value = t; mat.uniforms.uUseMap.value = 1; };
+
+let pending = 1;
+const done = () => { if (--pending === 0) document.getElementById('loading')?.remove(); };
+
+
+tickers.push(refreshRim);
+
+/* ================= 唱机（规格 第四节：机身试透光 · 冰版，防尘罩玻璃档，
+ * 黑胶/转盘/唱臂实体，封套真贴图 = 画面里最大的一块色彩） ================= */
+const TT = '../标杆物件_唱机/viewer/';
+let turntableParts = null;
+const glassLike = [];   // 走"杯子"档的透光件：不透明 20 · 边缘 ×1.0 · 锐度 3.4 · 内核 0（物件_酒 量出来的）
+tickers.push(() => glassLike.forEach(m => {
+  m.uniforms.uAlpha.value = 0.20; m.uniforms.uRimS.value = ENV.rimS / 100; m.uniforms.uRimP.value = 3.4; m.uniforms.uCoreS.value = 0;
+}));
+{
+  const mats = {
+    // 机身：和酒杯同一套透光玻璃档（ice 材质 + 杯子的档位），比之前的透射材质干净得多
+    M_Plinth:      (() => { const m = ice('glass'); m.side = THREE.DoubleSide; glassLike.push(m); return m; })(),
+    M_Chassis:     solid('#DDE3E6', { rough: 0.6 }),
+    M_Accent:      solid('#2A2F3A', { rough: 0.5 }),
+    // 防尘罩沿用物件 viewer 的做法：简单半透明，不走冰壳 ——
+    // 冰壳 rim 套在整个罩盒上会把底下的机器糊成一团白
+    M_DustCover:   (() => { const m = new THREE.MeshStandardMaterial({
+      color: grade('#DCE8EC'), roughness: 0.06, metalness: 0,
+      transparent: true, opacity: 0.15, depthWrite: false });
+      // 罩子几乎全靠反射立住 —— 反射性格给到 2.2（实际强度 = 1+(2.2-1)×envVar%）
+      registerEnvI(m, 2.2);
+      return m; })(),
+    M_Platter:     (() => { const m = ice('glass'); m.side = THREE.DoubleSide; glassLike.push(m); return m; })(),   // 底座也透明（Iris：黑的底座被当成了黑胶的厚度）
+    M_Record:      null,   // ← 彩胶（vinylMat），在下面建好后填进来；黑胶已删（Iris 08-29 定稿）
+    M_Arm:         solid('#9A968C', { rough: 0.22 }),
+    M_Led:         solid('#FFE7B4', { rough: 0.3, emissive: '#FFD98F', emissiveIntensity: 2.2 }),
+    M_SleeveArt:   solid('#FFFFFF', { rough: 0.74, raw: true }),
+    M_SleeveBack:  solid('#FFFFFF', { rough: 0.82, raw: true }),
+    M_SleeveSpine: solid('#FFFFFF', { rough: 0.82, raw: true }),
+    M_Sticker:     solid('#FFFFFF', { raw: true }),
+  };
+  /* 彩胶的标签 = 正在放的那张专辑的封面（还没放歌时预载 Sons of 1973，见下）。
+   * 盘体逐像素画（scene/彩胶.js），颜色 = albums.js 里逐张手选的 vinyl 字段。
+   * 标签/中心孔半径的比例取自 标杆物件_唱机/blender/make_textures.py（50/151、3.6/151）。
+   * 512²：彩胶的细沟纹在 128 下根本画不下。 */
+  const REC_N = 512, REC_LABEL_R = REC_N / 2 * (50 / 151), REC_HOLE_R = REC_N / 2 * (3.6 / 151);
+  const recCanvas = document.createElement('canvas');
+  recCanvas.width = recCanvas.height = REC_N;
+  const recTex = new THREE.CanvasTexture(recCanvas);
+  recTex.colorSpace = THREE.SRGBColorSpace;
+  recTex.flipY = false;                     // glb 的 UV 已经翻过 V
+  recTex.anisotropy = 4;
+  /* 彩胶材质：**ice 家族的专属小着色器**（unlit），不是 MeshStandard。
+   * 试过 Standard + 深色贴图反解补偿 —— 死路：这个场景的强白光 + ACES
+   * 把任何半透明高饱和都洗成灰蓝（08-29 实测三轮）。而场景里所有鲜艳的
+   * 透明物（酒液、泡泡、花瓣）全是 ice 那套 unlit 着色器，颜色才立得住。
+   * 也不用 ice('glass') 现成档：那个 rim 是白色的还统一 uAlpha ——
+   * 彩胶要的是 **rim = 糖果色本色、alpha 逐像素来自贴图**（标签必须全实）。 */
+  const vinylUniforms = {
+    uMap:  { value: recTex },
+    uRim:  { value: new THREE.Color('#FFFFFF') },   // 边缘透光的颜色（= 亮一档的糖果色）
+    uRimS: { value: ENV.vinylRim / 100 },
+    uLit:  { value: 0.78 },                         // 手动"受光"倍率（08-29 对着场景亮度校的：1.0 标签纸会过 bloom 阈值发光）
+  };
+  const vinylMat = new THREE.ShaderMaterial({
+    uniforms: vinylUniforms,
+    vertexShader: /* glsl */`
+      varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+      void main(){
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vN = normalize(mat3(modelMatrix) * normal);
+        vV = normalize(cameraPosition - wp.xyz);
+        vUv = uv;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: /* glsl */`
+      precision highp float;
+      uniform sampler2D uMap; uniform vec3 uRim; uniform float uRimS, uLit;
+      varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+      void main(){
+        vec4 t = texture2D(uMap, vUv);
+        float d = abs(dot(normalize(vN), normalize(vV)));
+        float f = pow(1.0 - clamp(d, 0.0, 1.0), 2.6);
+        vec3 col = min(t.rgb * uLit + uRim * f * uRimS, vec3(1.0));
+        float a = clamp(t.a + f * uRimS * 0.35, 0.0, 1.0);
+        gl_FragColor = vec4(col, a);
+      }`,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.FrontSide,     // 薄盘：双面渲掠射角上正反两面菲涅尔会叠一次（泡泡的坑）
+  });
+  vinylMat.customProgramCacheKey = () => 'vinylCandy';
+  mats.M_Record = vinylMat;
+  let recCoverImg = null;                   // 当前贴着的封面（停了也留着，Iris：保持刚刚播放的封面）
+  let coverHex = null;                      // 这张专辑的彩胶色（albums.js 的 vinyl 字段，没有就 accent）
+  let coverAlbumId = null;                  // 正在放的专辑 id（nujabes 的色住在 ENV，要动态读）
+  let vinylSig = '';                        // 上次画贴图用的参数签名，变了才重画（拖滑块靠它刷新）
+  const VINYL_C0 = ENV.vinylC;              // 出厂值。面板色板一旦拖离它 = 进入试色模式，盖过专辑色
+  const activeVinylHex = () =>
+    ENV.vinylC !== VINYL_C0 ? ENV.vinylC                       // 试色板拖离出厂 = 全局覆盖
+    : coverAlbumId === 'kei-nujabes' ? ENV.vinylNujabesC       // nujabes 的色住在 ENV（色盘直接调）
+    : (coverHex || ENV.vinylC);
+  function redrawRecord() {
+    const tint = vinylTint(activeVinylHex());
+    vinylUniforms.uRim.value.set(tint.rim);   // 边缘光 raw：透出来的就是糖果色本色
+    vinylSig = vinylSigNow();
+    const x = recCanvas.getContext('2d', { willReadFrequently: true });
+    x.clearRect(0, 0, REC_N, REC_N);
+    /* 盘体 **raw 特批**（同贝壳/贴纸）：彩胶色是手选的合成色，不是照片。
+     * 过 grade 的话饱和被封顶在 ~75，彩胶直接灰掉（08-29 实测）。
+     * 标签（封面照片）和纸底照旧过 grade，和别的贴图物件在一个世界里。 */
+    drawVinylBody(x, REC_N, { tint: tint.hex, alpha: ENV.vinylA / 100,
+      groove: ENV.vinylGroove / 100, labelR: REC_LABEL_R });
+    // 标签底：全实的纸白 —— 半透明盘体直接贴封面的话，封面会跟着透
+    x.beginPath(); x.arc(REC_N / 2, REC_N / 2, REC_LABEL_R + 0.5, 0, Math.PI * 2);
+    x.fillStyle = grade('#F2EEE6'); x.fill();
+    if (recCoverImg) {                      // 封面圆裁进标签（半径多给 0.5px 盖住抗锯齿边），先过 grade
+      const R = REC_LABEL_R + 0.5;
+      const oc = document.createElement('canvas');
+      oc.width = oc.height = Math.ceil(R * 2);
+      const ox = oc.getContext('2d', { willReadFrequently: true });
+      ox.drawImage(recCoverImg, 0, 0, oc.width, oc.height);
+      ox.putImageData(gradeImageData(ox.getImageData(0, 0, oc.width, oc.height)), 0, 0);
+      x.save();
+      x.beginPath(); x.arc(REC_N / 2, REC_N / 2, R, 0, Math.PI * 2); x.clip();
+      x.drawImage(oc, REC_N / 2 - R, REC_N / 2 - R, R * 2, R * 2);
+      x.restore();
+    }
+    x.beginPath(); x.arc(REC_N / 2, REC_N / 2, REC_HOLE_R, 0, Math.PI * 2);
+    x.fillStyle = grade('#0C0C0F'); x.fill();   // 中心孔
+    recTex.dispose();                       // canvas 内容换了要重新分配 GPU 纹理，光 needsUpdate 不够
+    recTex.needsUpdate = true;
+  }
+  const vinylSigNow = () => [ENV.vinylA, ENV.vinylGroove, ENV.vinylC, ENV.vinylNujabesC,
+    coverHex, coverAlbumId, recCoverImg?.src].join('|');
+  fetch(TT + 'tex/manifest.json').then(r => r.json()).then(m => {
+    const rec = m.records.find(r => r.name === 'kei nishikori meet nujabes') || m.records[0];
+    loadTex(TT + rec.sleeve, setMap(mats.M_SleeveArt));
+    if (rec.back) loadTex(TT + rec.back, setMap(mats.M_SleeveBack));
+    if (rec.spine) loadTex(TT + rec.spine, setMap(mats.M_SleeveSpine));
+  });
+  let recCoverSrc = null;
+  audio.on('change', st => {
+    if (!st.cover || st.cover === recCoverSrc) return;   // 停了不清空：封面保持刚刚放的那张
+    recCoverSrc = st.cover;
+    const im = new Image();
+    im.onload = () => {
+      recCoverImg = im;
+      // ⚠️ st.albumId 是 Spotify 的专辑 id（'1FVw3…'），不是 albums.js 的 id —— 按 cover 对（原样传递，最稳）
+      const alb = ALBUMS.find(a => a.cover === st.cover || a.spotifyAlbum === st.albumId);
+      coverAlbumId = alb?.id || null;
+      coverHex = alb?.vinyl || alb?.accent || st.accent || null;
+      redrawRecord();
+    };
+    im.onerror = () => console.warn('封面没加载到:', st.cover);
+    // albums.js 里的 cover 是相对 音乐层/ 的（'covers/xx.jpg'），
+    // 这页在 /共用/ 下，直接用会 404 —— 补上前缀。player.js 的缩略图同病，归 UI 窗口。
+    im.src = encodeURI(/^(https?:|\/|\.\.)/.test(st.cover) ? st.cover : '../音乐层/' + st.cover);
+  });
+  /* 还没放过歌时也得是一张完整的唱片（Iris 08-29：「默认状态也得有封面」）——
+   * 预载 Sons of 1973：封面上标签、彩胶用它的蓝。真放这张时 recCoverSrc 相同，不会重加载。 */
+  {
+    const alb = ALBUMS.find(a => a.id === 'sons-of-1973') || ALBUMS[0];
+    recCoverSrc = alb.cover;
+    coverAlbumId = alb.id;
+    coverHex = alb.vinyl || alb.accent;
+    const im = new Image();
+    im.onload = () => { recCoverImg = im; redrawRecord(); };
+    im.src = encodeURI('../音乐层/' + alb.cover);
+  }
+  new GLTFLoader().load(TT + 'turntable.glb', gltf => {
+    const parts = {};
+    gltf.scene.traverse(o => {
+      if (o.name && !parts[o.name]) parts[o.name] = o;
+      if (o.isMesh) o.material = mats[o.material?.name] || solid('#888888');
+    });
+    Object.keys(parts).filter(k => k.startsWith('Sticker_')).forEach(k => { parts[k].visible = false; });
+    if (parts.Sleeve) parts.Sleeve.visible = false;    // 封套拿掉，只留唱机（Iris，2026-08-22）
+    if (parts.DustCover) parts.DustCover.visible = false; // 防尘罩也不要了（Iris，2026-08-22）
+    // 黑胶厚度跟面板走（模型原厚度 = 100%；Iris 08-22 定 33）
+    tickers.push(() => { if (parts.Record) parts.Record.scale.y = ENV.recordThick / 100; });
+    /* 彩胶：贴图参数（滑块/试色板/换专辑）变了才重画。
+     * ⚠️ 透明件排序：机身 0 < 底座 1 < 彩胶 2，从下往上 —— 三层都是透明的，
+     * 靠深度排序在掠射角上会翻车（"唱臂被彩胶吃掉"那类）。浪是 2，和彩胶不重叠。 */
+    if (parts.Platter) parts.Platter.renderOrder = 1;
+    if (parts.Record) parts.Record.renderOrder = 2;
+    tickers.push(() => {
+      vinylUniforms.uRimS.value = ENV.vinylRim / 100;
+      if (vinylSigNow() !== vinylSig) redrawRecord();
+    });
+    ['Plinth', 'DustCover'].forEach(n => parts[n] && stage.markGlass(parts[n]));
+    stage.world.add(gltf.scene);
+    registerLayout('tt', gltf.scene);
+    turntableObj = gltf.scene;
+    registerHover(gltf.scene);
+    turntableParts = parts;
+    // 唱片转不转由音乐层的 audio.state.playing 驱动（唱机不持有音频状态）
+    let spin = 0;
+    tickers.push(dt => {
+      const target = audio.state.playing ? 1 : 0;
+      spin += (target - spin) * Math.min(1, dt * 1.4);
+      if (parts.Record) parts.Record.rotation.y -= dt * 3.49 * spin;   // 33⅓ rpm
+      if (parts.Tonearm) parts.Tonearm.rotation.y = -0.537 * spin;     // 落针
+    });
+    done();
+  });
+}
+
+/* ================= 设备（真 MacBook + 小数码）与木吉他 ================= */
+let macbookObj = null, cameraObj = null, cocktailObj = null, guitarObj = null, turntableObj = null;
+let sunflowerObjs = [];
+let deckMesh = null, deckTex = null;      // 键盘面（Touch Bar 的点击要用）
+/* 悬停登记表。⚠️ 必须声明在**所有 registerHover() 调用之前** ——
+ * 各物件是在模块顶层一边加载一边登记的，const 的 TDZ 会直接抛
+ * 「Cannot access 'HOVER' before initialization」，而且是在 GLTF 的回调里抛，
+ * 报错位置指向 loader，很难看出是这儿。行为逻辑在下面「悬停反馈」那一节。 */
+const HOVER = [];
+const HOVER_LIFT = 0.008;          // 抬 8mm。垫上的东西都是 10~20cm 级，这个量刚好看得见又不跳
+let hoverNow = null, hoverXY = [0, 0];
+function registerHover(obj) { HOVER.push({ obj, lift: 0, target: 0, base: obj.position.y }); }
+(async () => {
+  try {
+    const dv = await loadDevices(stage);
+    if (dv.macbook) { stage.world.add(dv.macbook.obj); registerLayout('mb', dv.macbook.obj); macbookObj = dv.macbook.obj;
+      registerHover(dv.macbook.obj);
+      deckTex = dv.deckTex;
+      dv.macbook.obj.traverse(o => { if (o.isMesh && o.name === 'mba_deck') deckMesh = o; }); }
+    if (dv.camera) {
+      stage.world.add(dv.camera.obj); registerLayout('cam', dv.camera.obj);
+      registerHover(dv.camera.obj);
+      cameraObj = dv.camera.obj;
+      cameraObj.userData.hint = '点我看照片';
+    }
+  } catch (e) { console.warn('设备没加载到', e); }
+  try {
+    const gt = await loadGuitar(stage);
+    stage.world.add(gt.obj);
+    registerLayout('gt', gt.obj, { scaleKey: 'gtScale', pad: 0.002 });
+    guitarObj = gt.obj;
+    registerHover(gt.obj);
+  } catch (e) { console.warn('吉他没加载到', e); }
+})();
+
+/* ================= 灵魂猫（谷子占位：圆头 + 尖耳 + 简笔五官 + 腮红 + 内核光）
+ * 点它 → 切换泡泡样式；泡泡里飘着留言/许愿（原型） ================= */
+const cat = new THREE.Group();
+{
+  const soulMat = stage.materials.ice('soul');
+  const sph = new THREE.SphereGeometry(1, 12, 9);
+  const mk = (geo, x, y, z, sx, sy, sz, rz = 0) => {
+    const m = new THREE.Mesh(geo, soulMat);
+    m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.z = rz;
+    cat.add(m); return m;
+  };
+  // 只要一个猫头（Iris：本来就没想要身子）：圆头趴在垫上 + 尖耳
+  mk(sph, 0, 0.05, 0, 0.056, 0.05, 0.052);
+  const ear = new THREE.ConeGeometry(1, 1, 4);
+  mk(ear, -0.036, 0.092, 0, 0.016, 0.032, 0.012, 0.32);
+  mk(ear,  0.036, 0.092, 0, 0.016, 0.032, 0.012, -0.32);
+  const face = (x, y, w, hh, c, op) => {
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(w, hh),
+      new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: op, depthWrite: false }));
+    q.position.set(x, y, 0.052); cat.add(q); return q;
+  };
+  face(-0.02, 0.056, 0.016, 0.004, '#2E3742', 0.9);    // 眯眼
+  face( 0.02, 0.056, 0.016, 0.004, '#2E3742', 0.9);
+  face(0, 0.043, 0.006, 0.004, '#2E3742', 0.8);        // 鼻
+  face(-0.031, 0.041, 0.013, 0.008, '#F0A0AE', 0.55);  // 腮红
+  face( 0.031, 0.041, 0.013, 0.008, '#F0A0AE', 0.55);
+  [-1, 1].forEach(s => { for (let k = 0; k < 2; k++) face(s * 0.05, 0.047 - k * 0.007, 0.022, 0.0015, '#2E3742', 0.5); });  // 胡须
+  const core = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: stage.glowTex, color: ENV.coreC,
+    // fog: false —— 加色的内核混向雾色只会更亮（同 stage.js 的屏幕光晕）
+    blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false,
+    opacity: ENV.core / 100 * 0.5,
+  }));
+  core.position.set(0, 0.05, 0); core.scale.setScalar(0.07); core.userData.noBounds = true;
+  cat.add(core);
+  stage.world.add(cat);
+  registerLayout('cat', cat);
+  registerHover(cat);          // 灵魂猫本来就能点（许愿），少了悬停反馈
+  cat.userData.hint = '点我切换泡泡';
+}
+
+/* ================= 许愿台：点猫猫 → 写一句愿望、选泡泡样式 → 放飞；点任何泡泡 → 戳破 =================
+ * 愿望先存在浏览器 localStorage 里（原型）；真上线时换成后端，接口就是 stage.spawnBubble()。 */
+const WISHES = ['晚安', '好运', '想你', '夏天', '慢一点', '再来一次', '平安', '🌸', '🐚'];
+const mkText = txt => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 96;
+  const x = c.getContext('2d');
+  x.font = '500 34px -apple-system, "PingFang SC", sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = 'rgba(255,255,255,0.95)'; x.fillText(txt.slice(0, 12), 128, 50);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+};
+function attachText(obj, txt) {
+  if (!txt) return;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: mkText(txt), transparent: true, opacity: 0.8, depthWrite: false }));
+  sp.scale.set(1.6, 0.6, 1); sp.userData.noBounds = true;
+  obj.add(sp);
+}
+
+/* 许愿窗口：用音乐层的 UI 系统（共用/ui.js 的 .y2k-* 组件），和播放器一套皮 */
+let wishKind = 'circle';
+let wishWin = null;
+function openWish() {
+  if (wishWin && !wishWin.closed) { wishWin.focus(); return; }
+  const kinds = [['circle', '圆圈'], ['heart', '爱心'], ['cat', '猫猫'], ['dog', '狗狗']];
+  const kindBtns = kinds.map(([k, label]) => ui.btn({ label, variant: k === wishKind ? 'primary' : undefined,
+    onClick: () => { wishKind = k; kindBtns.forEach((bb, i) => bb.classList.toggle('y2k-btn--primary', kinds[i][0] === k)); } }));
+  const f = ui.field({ placeholder: '在这里写下你的愿望吧（12字以内）', maxlength: 12 });
+  // 窗口参数和音乐播放器一致：材质、字色都走 ui 的全站默认，不单独指定
+  // 高 0 = 跟着内容走；>0 = 定高（--y2k-h 平时只是 max-height，要 fixedHeight 才真的定死）
+  wishWin = ui.window({ title: '猫猫许愿泡泡机', sub: '戳一下泡泡愿望会成真',
+                        width: ENV.wishW + 'px',
+                        height: ENV.wishH > 0 ? ENV.wishH + 'px' : 'auto',
+                        fixedHeight: ENV.wishH > 0 });
+  wishWin.setView(ui.scroll(ui.section(f, ui.legend('泡泡样式'), h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, kindBtns))));
+  const go = () => { const t = f.input.value.trim(); if (!t) return; fly(t, wishKind); wishWin.close(); };
+  f.input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  wishWin.setFooter([ui.spacer(), ui.btn({ label: '放飞！', variant: 'primary', onClick: go })]);
+  setTimeout(() => f.input.focus(), 50);
+}
+// 面板上拖「许愿窗 宽/高」时，开着的窗口跟着变 —— 不然每调一次都要关了重开
+stage.onParams(() => {
+  sizeMini();
+  if (!wishWin || wishWin.closed) return;
+  wishWin.win.style.setProperty('--y2k-w', ENV.wishW + 'px');
+  wishWin.win.style.setProperty('--y2k-h', ENV.wishH > 0 ? ENV.wishH + 'px' : 'auto');
+  wishWin.win.classList.toggle('y2k-window--fixed', ENV.wishH > 0);
+});
+
+/* 愿望的存取：优先走 /wishes 接口（共用/许愿服务.py，同一个地址的人互相看得到），
+ * 接口不在就退回浏览器本地。别人新许的愿靠轮询，4 秒一次。 */
+const wishStore = {
+  remote: null, seen: new Set(),
+  async init() {
+    try { const r = await fetch('/wishes', { cache: 'no-store' }); this.remote = r.ok; if (r.ok) return (await r.json()).wishes || []; }
+    catch { this.remote = false; }
+    try { return JSON.parse(localStorage.getItem('wishes') || '[]'); } catch { return []; }
+  },
+  async add(w) {
+    if (this.remote) { await fetch('/wishes', { method: 'POST', body: JSON.stringify(w) }).catch(() => {}); return; }
+    localStorage.setItem('wishes', JSON.stringify([...(JSON.parse(localStorage.getItem('wishes') || '[]')), w].slice(-40)));
+  },
+  async remove(id) {
+    if (this.remote) { await fetch('/wishes?id=' + encodeURIComponent(id), { method: 'DELETE' }).catch(() => {}); return; }
+    localStorage.setItem('wishes', JSON.stringify(JSON.parse(localStorage.getItem('wishes') || '[]').filter(w => w.id !== id)));
+  },
+  async poll() {
+    if (!this.remote) return [];
+    const j = await fetch('/wishes', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+    return j ? j.wishes : [];
+  },
+};
+function fly(text, kind, w = null) {
+  const wish = w || { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, kind, t: Date.now() };
+  wishStore.seen.add(wish.id);
+  const obj = stage.spawnBubble({ text: wish.text, kind: wish.kind, at: [cat.position.x, cat.position.z] });
+  obj.userData.wish = wish;
+  attachText(obj, wish.text);
+  if (!w) wishStore.add(wish);
+}
+wishStore.init().then(list => {
+  list.forEach((w, i) => setTimeout(() => fly(null, null, w), 1500 + i * 700));
+  if (wishStore.remote) setInterval(async () => {
+    for (const w of await wishStore.poll()) if (!wishStore.seen.has(w.id)) fly(null, null, w);   // 别人刚许的愿也飘过来
+  }, 4000);
+});
+
+{
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  const setNdc = e => { const r = canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, stage.camera); };
+  let down = null;
+  canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+  canvas.addEventListener('pointerup', e => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) { down = null; return; }
+    down = null; setNdc(e);
+    if (crittersSys) {
+      const hc = ray.intersectObjects(crittersSys.critters.map(c => c.group), true)[0];
+      if (hc && crittersSys.poke(hc.object)) return;
+    }
+    const hb = ray.intersectObject(stage.bubbles, true)[0];
+    if (hb) {                                      // 戳破
+      const en = stage.popBubble(hb.object);
+      if (en && en.obj.userData.wish) wishStore.remove(en.obj.userData.wish.id);   // 许愿泡泡破了就从大家的海里去掉
+      return;
+    }
+    if (ray.intersectObject(cat, true).length) openWish();
+  });
+  canvas.addEventListener('pointermove', e => {
+    setNdc(e);
+    // （兔子光标恢复时这里要改回 bunny.setHoverAux —— 直接写 pointer 会盖掉兔子）
+    if (ray.intersectObject(stage.bubbles, true).length || ray.intersectObject(cat, true).length
+        || (cameraObj && ray.intersectObject(cameraObj, true).length)) canvas.style.cursor = 'pointer';
+  });
+}
+
+/* ================= 其他窗口的物件：花 · 酒 · 贝壳 · 小生物 ================= */
+const avoidBlanket = (x, z) => inBlanket(x, z, 0.05) || z < -0.95;   // 垫子 + 浪能打到的带（那里的东西靠浪送）
+let crittersSys = null;
+(async () => {
+  try {
+    const ck = await loadCocktail(stage, { x: ENV.ckX / 100, z: ENV.ckZ / 100, rot: ENV.ckR * Math.PI / 180, blanketTop });
+    tickers.push(dt => ck.update(dt));
+    layoutReg.push({ key: 'ck', obj: ck.group, shadow: ck.shadow });
+    cocktailObj = ck.group;
+    registerHover(ck.group);
+  } catch (e) { console.warn('酒没加载到', e); }
+  try {
+    const SUN_OFF = [[-0.04, -0.06, 2.3], [0.04, 0.02, 2.55], [-0.10, 0.05, 2.05]];
+    window.SUN_BASE = [0, 0];
+    const fl = await loadFlowers(stage, {
+      blanketTop, inBlanket: avoidBlanket, wild: 5,
+      sunflowers: 3,
+      sunSpots: SUN_OFF.map(([ox, oz, rot]) => ({ x: ENV.sunX / 100 + ox, z: ENV.sunZ / 100 + oz, rot })),
+    });
+    sunReg = fl.sunflowers.map(it => ({ ...it, spot: { x: it.spot.x - ENV.sunX / 100, z: it.spot.z - ENV.sunZ / 100, rot: it.spot.rot } }));
+    /* ⚠️ 建完 sunReg **立刻**跑一次 applySun()。
+     * `loadFlowers` 摆位时用的是 `sunSpots` 里的原始 x/z/rot（没算整束的旋转 ENV.sunR），
+     * 而 `applySun()` 会把整束绕 sunR 转一圈 —— 两边差着一个角度。
+     * 不在这儿对齐的话：加载完是一个朝向，等到**下一次 settleAll()**（拖任意一个面板滑块、
+     * 或者别的物件登记进来）才跳到另一个朝向。表现就是"向日葵会自己偷换朝向，
+     * 不知道是哪次交互之后触发的"（Iris 2026-08-29）。
+     * applySun 是唯一真相，让它从第一帧就说了算。 */
+    applySun();
+    sunflowerObjs = fl.sunflowers.map(it => it.obj);
+    sunflowerObjs.forEach(o => registerHover(o));
+  } catch (e) { console.warn('花没加载到', e); }
+  try {
+    // 撒点相关的参数变了才重撒；「漂走%」是实时读的，拖它不该把整片贝壳重撒一遍
+    const shellLayout = () => ({ count: ENV.shellCount, scale: ENV.shellScale / 100, bandZ: [-ENV.shellFar / 100, -ENV.shellNear / 100] });
+    const shellParams = () => ({ ...shellLayout(), drift: ENV.shellDrift, swash: ENV.shellSwash });
+    const sh = await loadShells(stage, { seed: 11, avoid: (x, z) => inBlanket(x, z, 0.06), getParams: shellParams });
+    tickers.push(dt => sh.update(dt));
+    let last = JSON.stringify(shellLayout()), timer = 0;
+    stage.onParams(() => { const now = JSON.stringify(shellLayout()); if (now === last) return; last = now; clearTimeout(timer); timer = setTimeout(() => sh.rebuild(), 250); });
+  }
+  catch (e) { console.warn('贝壳没加载到', e); }
+  try {
+    crittersSys = await loadCritters(stage, { avoid: avoidBlanket, counts: { crab: 1, turtle: 1, octopus: 1 } });
+    tickers.push(dt => crittersSys.update(dt));
+    window.__scene.critters = crittersSys;
+  } catch (e) { console.warn('小生物没加载到', e); }
+})();
+// 光标落在沙上的位置 → 小生物会躲
+{
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  canvas.addEventListener('pointermove', e => {
+    if (!crittersSys) return;
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, stage.camera);
+    const t = (0.0 - ray.ray.origin.y) / ray.ray.direction.y;
+    crittersSys.setPointer(t > 0 ? [ray.ray.origin.x + ray.ray.direction.x * t, ray.ray.origin.z + ray.ray.direction.z * t] : null);
+  });
+}
+
+/* ================= 音乐播放器（音乐层）：点唱机打开千禧年窗口 ================= */
+audio.autoUnlock();
+
+/* ================= 浪声 =================
+ * 引擎在 共用/audio.js 第 4.5 节（照 海浪声实验室.html v2 抄的六层合成），
+ * 音色参数在 共用/浪声参数.js（Iris 在实验室里调的，纯数据）。
+ *
+ * **和动画同步**：实验室里是"每 gap 秒响一发"的定时器；这里删掉了定时器，
+ * 改成**浪冲上来的那一下触发一发**。
+ * 触发时机往前提一个 atk：声音的包络峰值要落在**水线冲得最快**那一帧
+ * （实测在相位 0.20），而不是落在触发那一帧。
+ */
+{
+  let lastPh = 1, armed = true;
+  tickers.push(dt => {
+    const wv = stage.waves;
+    if (!wv || !wv.state.on || !audio.wavesOn) return;
+    audio.waveTick();                       // 风铃自己的随机调度（按设计不跟着浪）
+    const ph = wv.phase();
+    if (ph < lastPh) armed = true;          // 新的一轮潮
+    lastPh = ph;
+    // 画面上浪最猛在相位 0.20；把触发提前一个 atk，让声音的峰值和它对上
+    const peak = 0.20 * wv.state.period;
+    const trig = Math.max(0, peak - WAVE_SOUND.master.atk) / wv.state.period;
+    if (armed && ph >= trig) {
+      armed = false;
+      audio.waveBreak({ strength: 0.85 + Math.random() * 0.3 });
+    }
+  });
+  // 浏览器不许没交互就出声：第一次点画布时打开（以后加载页的 ENTER 接管）
+  const kick = () => { audio.waves(true); removeEventListener('pointerdown', kick); };
+  addEventListener('pointerdown', kick);
+  // 面板「浪 · 湿沙 → 浪声音量 / 浪声 1合成 0真实」
+  let lastMode = null;
+  const applyVol = () => {
+    audio.setAmbienceVolume(ENV.waveVol / 100);
+    const mode = ENV.waveSynth ? 'synth' : 'real';
+    if (mode !== lastMode) { lastMode = mode; audio.setWaveMode(mode); }
+  };
+  applyVol(); stage.onParams(applyVol);
+  window.__waveAudio = { peek: () => ({ env: +audio.waveEnvelope().toFixed(3), level: +audio.waveLevel().toFixed(4) }) };
+}
+
+const albums = ALBUMS.map(a => ({ ...a, cover: '../音乐层/' + a.cover }));   // 封面路径相对本页
+let playerWin = null;
+function openMusic() {
+  // 每次都走 openPlayer：它自己会认出窗口只是被收起来了（keepAlive）并 reopen()。
+  // 以前这里写的是 playerWin.open?.()，而 ui.window 的方法叫 reopen —— ?. 把这个笔误
+  // 吞掉了，于是播放器关过一次之后再点唱机就永远没反应。
+  playerWin = openPlayer({ albums, onClose: () => {} });
+}
+{
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let down = null;
+  canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+  canvas.addEventListener('pointerup', e => {
+    if (!down || !turntableParts || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) { down = null; return; }
+    down = null;
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, stage.camera);
+    const hit = [turntableParts.Record, turntableParts.Plinth, turntableParts.Platter, turntableParts.DustCover].filter(Boolean);
+    if (ray.intersectObjects(hit, true).length) { openMusic(); return; }
+    // 相机 → 相册（点击路由归窗口 A，窗口内容在 共用/相册.js）
+    if (cameraObj && ray.intersectObject(cameraObj, true).length) { openPhotos(); return; }
+    // 电脑 → 镜头凑到屏幕正前方（再点一次 / Esc / 点空白处 退回来）
+    if (macbookObj && ray.intersectObject(macbookObj, true).length) {
+      if (deskOn) {
+        // 凑近之后：Touch Bar 上那两个控件先响应，再是"点屏幕换壁纸"
+        if (hitTouchBar(ray)) return;
+        // ⚠️ 这里必须 **recursive = false**：屏幕网格底下挂着往前照的那束光
+        //   （一个伸出去老远的锥台），recursive 的话点到光束也算点到屏幕 ——
+        //   表现就是"鼠标范围超出屏幕了，太容易换壁纸"。
+        const scr = screenMesh();
+        if (scr && ray.intersectObject(scr, false).length) { nextWallpaper(); return; }
+      }
+      toggleDesk(); return;
+    }
+    // 酒杯 → A Cocktail（内嵌小窗口）
+    if (cocktailObj && ray.intersectObject(cocktailObj, true).length) { openBar(); return; }
+    // 向日葵 → 一句话气泡
+    for (const o of sunflowerObjs) {
+      if (ray.intersectObject(o, true).length) { murmurAt(sunflowerObjs[0]); return; }
+    }
+    // 海 → 看海（点到水那边的空地；再点海 / Esc / 点空白 退回）
+    if (!deskOn && seaPointAt(ray)) { toggleSea(); return; }
+    if (deskOn) leaveDesk();          // 已经凑近了，点别处就退回来
+    else if (seaOn) leaveSea();
+  });
+}
+
+/* ================= 悬停反馈 =================
+ * 鼠标移到能点的东西上：**物件轻轻抬起来一点** + 接触阴影收紧 + 光标变手型。
+ *
+ * **不给文字提示**（Iris 2026-08-28：「交互就交互，不需要提示词」）——
+ * 点开是什么，留给好奇心去发现。抬起来只说明"这个能点"，不剧透"点了会怎样"。
+ *
+ * 为什么是"抬起来"而不是高亮描边 / 放大：
+ * 这个场景本来就在说物理的话 —— 东西陷在沙里、把垫子压出坑。
+ * 「抬起来一点」是同一套语言的延伸，不用往画面里加新的视觉词汇；
+ * 描边发光是游戏 UI 的词，放在这张野餐垫上很出戏（宪法：平滑柔和的极简）。 */
+{
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let dirty = false;
+  canvas.addEventListener('pointermove', e => { hoverXY = [e.clientX, e.clientY]; dirty = true; });
+  canvas.addEventListener('pointerleave', () => { hoverNow = null; canvas.style.cursor = ''; });
+
+  tickers.push(dt => {
+    // 命中测试跟着帧走，不跟着 pointermove 走 —— 移动事件一秒能来上百次，射线不用跑那么多趟
+    if (dirty) {
+      dirty = false;
+      const r = canvas.getBoundingClientRect();
+      ndc.set(((hoverXY[0] - r.left) / r.width) * 2 - 1, -((hoverXY[1] - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(ndc, stage.camera);
+      const objs = HOVER.map(h => h.obj);
+      const hit = ray.intersectObjects(objs, true)[0];
+      let found = null;
+      if (hit) {
+        let n = hit.object;
+        while (n && !objs.includes(n)) n = n.parent;
+        found = HOVER.find(h => h.obj === n) || null;
+      }
+      // 海也算"到可触发范围"（看海入口没有文字提示，光标变手型就是信号）
+      const seaHover = !found && !deskOn && !seaOn && !!seaPointAt(ray);
+      if (found !== hoverNow || seaHover !== seaHoverNow) {
+        hoverNow = found;
+        seaHoverNow = seaHover;
+        canvas.style.cursor = (hoverNow || seaHoverNow) ? 'pointer' : '';
+      }
+    }
+    for (const h of HOVER) {
+      h.target = (h === hoverNow && !deskOn) ? HOVER_LIFT : 0;
+      // lift 归零的那些帧顺便把基准高度重新对一下 —— settleAll() 可能刚把物件放到新高度
+      if (h.lift === 0) h.base = h.obj.position.y;
+      h.lift += (h.target - h.lift) * (1 - Math.exp(-dt * 14));
+      if (h.target === 0 && Math.abs(h.lift) < 2e-5) h.lift = 0;
+      h.obj.position.y = h.base + h.lift;
+      // 影子跟着收：离地了就该小一点
+      const en = layoutReg.find(l => l.obj === h.obj);
+      if (en && en.shadow) {
+        const k = h.lift / HOVER_LIFT;
+        if (en.shadow.userData.baseScale === undefined) en.shadow.userData.baseScale = en.shadow.scale.x;
+        const b = en.shadow.userData.baseScale;
+        en.shadow.scale.set(b * (1 - k * 0.16), b * (1 - k * 0.16), 1);
+      }
+    }
+  });
+}
+
+/* ================= 气泡（点向日葵）=================
+ * 像发 iMessage：**不管戳哪一朵，气泡都从同一个位置冒出来**，
+ * 上一条被往上顶。新的永远在最下面。
+ *
+ * 做法：一个竖直的 flex 容器，**底边**钉在锚点上（translate(-50%,-100%)），
+ * 往里 append 就自然出现在最下面、旧的往上走 —— 不用自己算每条的位置。
+ * 锚点是**一个 3D 点**（向日葵那丛的上方），每帧投影一次，所以转镜头时整摞跟着走。
+ *
+ * 材质用设计系统的 `.y2k-glass`（和窗口是同一块玻璃）。
+ * ⚠️ ui.css 说 backdrop-filter 很贵、只给窗口那一层用 —— 这里同时最多 5 条，可以接受。
+ * 台词随便加，MURMURS 里加一行就行。 */
+const MURMURS = [
+  '你找到带有向日葵气息的武士了吗？',
+  '向日葵是没有气味的',
+  '流泪道别并不适合我们，因为下次见面时会很难为情',
+  '雨一直不停就好了',
+];
+const BUBBLE_MAX = 5, BUBBLE_LIFE = 9.5;
+let bubbleBox = null, bubbleAnchor = null, lastMurmur = -1;
+const bubbleList = [];
+
+function murmurAt(anchorObj) {
+  if (!bubbleBox) {
+    bubbleBox = h('div.y2k', {
+      style: { position: 'fixed', zIndex: '9996', pointerEvents: 'none',
+               display: 'flex', flexDirection: 'column', gap: '7px',
+               alignItems: 'flex-start', transform: 'translate(-50%,-100%)' },
+    });
+    document.body.appendChild(bubbleBox);
+  }
+  // 锚点只在第一次定下来 —— 戳哪一朵都从这儿冒
+  if (!bubbleAnchor) {
+    const b = new THREE.Box3().setFromObject(anchorObj);
+    bubbleAnchor = b.getCenter(new THREE.Vector3());
+    bubbleAnchor.y = b.max.y + 0.055;
+  }
+  // 随机一句，但不要连着重复上一句
+  let i = Math.floor(Math.random() * MURMURS.length);
+  if (MURMURS.length > 1 && i === lastMurmur) i = (i + 1) % MURMURS.length;
+  lastMurmur = i;
+
+  const el = h('div.y2k-glass', {
+    style: { padding: '8px 15px', borderRadius: '16px 16px 16px 5px', whiteSpace: 'nowrap',
+             font: '12px/1.5 var(--y2k-font, -apple-system,"PingFang SC",sans-serif)',
+             letterSpacing: '.05em', color: 'var(--y2k-ink, #1E3A57)',
+             // ⚠️ `.y2k-glass` 出厂的 --y2k-shade 是全透明的（窗口那么大一块、又有背景模糊，
+             //    透明也读得清）。气泡只有一行字、又浮在亮沙滩上，不给底就是一片看不清的字。
+             //    --y2k-shade / --y2k-tint 本来就是留着让人按场景改的变量，改这两个而不是
+             //    另写一套背景，材质还是设计系统那块玻璃。
+             '--y2k-shade': 'rgba(252,253,255,.62)',
+             '--y2k-tint': 'rgba(255,255,255,.30)',
+             opacity: '0', transform: 'translateY(8px)',
+             transition: 'opacity .28s var(--y2k-ease,ease), transform .28s var(--y2k-ease,ease)' },
+  }, MURMURS[i]);
+  bubbleBox.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; });
+  bubbleList.push({ el, t: 0 });
+  while (bubbleList.length > BUBBLE_MAX) {          // 超了就把最老那条推走
+    const old = bubbleList.shift();
+    old.el.style.opacity = '0';
+    setTimeout(() => old.el.remove(), 300);
+  }
+}
+tickers.push(dt => {
+  if (!bubbleBox || !bubbleAnchor) return;
+  for (let i = bubbleList.length - 1; i >= 0; i--) {
+    const b = bubbleList[i];
+    b.t += dt;
+    if (b.t > BUBBLE_LIFE) {
+      b.el.style.opacity = '0';
+      setTimeout(() => b.el.remove(), 300);
+      bubbleList.splice(i, 1);
+    }
+  }
+  if (!bubbleList.length) { bubbleBox.style.opacity = '0'; return; }
+  bubbleBox.style.opacity = '1';
+  const r = canvas.getBoundingClientRect();
+  const p = bubbleAnchor.clone().project(stage.camera);
+  bubbleBox.style.left = (r.left + (p.x * 0.5 + 0.5) * r.width) + 'px';
+  bubbleBox.style.top = (r.top + (-p.y * 0.5 + 0.5) * r.height) + 'px';
+});
+
+/* ================= 一杯调好的酒 → A Cocktail =================
+ * 内嵌一个 iframe，不跳走 —— 点回来还是这张野餐垫。
+ * 查过了：a-cocktail.com 没有 X-Frame-Options 也没有 CSP frame-ancestors，能嵌。
+ * 但那是**别人服务器上的配置**，哪天加上了这儿不能白屏，所以：
+ *   占位层一直在底下（"正在打开…" + 外链按钮），iframe 盖在上面、load 了才淡入。
+ *   ⚠️ 不要"超时就把 iframe 换掉" —— 第一版给了 3.5 秒就换，
+ *      结果站点只是慢了点，明明能嵌却弹出"不让被嵌"。占位层留着不动是更稳的写法。 */
+let barWin = null, barFrame = null;
+const BAR_URL = 'https://a-cocktail.com';
+function openBar() {
+  const url = BAR_URL;
+  // 收起过就再打开，并把 src 装回去（关的时候被卸掉了，见下面 onClose）
+  if (barWin && barWin.parked) { barWin.reopen(); if (barFrame) barFrame.src = url; return; }
+  if (barWin && !barWin.closed) { barWin.focus(); return; }
+
+  const openOut = () => open(url, '_blank', 'noopener');
+  const hint = h('div', { style: { opacity: '.72', fontSize: '13px', letterSpacing: '.06em' } }, '正在打开 a-cocktail.com …');
+  const placeholder = h('div', {
+    style: { position: 'absolute', inset: '0', display: 'flex', flexDirection: 'column',
+             alignItems: 'center', justifyContent: 'center', gap: '12px' },
+  }, hint, ui.btn({ label: '在新标签页打开', variant: 'ghost', onClick: openOut }));
+  const frame = h('iframe', {
+    src: url, title: 'A Cocktail',
+    style: { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0',
+             borderRadius: '10px', background: '#fff', opacity: '0', transition: 'opacity .45s' },
+  });
+  frame.addEventListener('load', () => { frame.style.opacity = '1'; });
+  setTimeout(() => {
+    if (frame.style.opacity === '1') return;
+    hint.textContent = '这个站点大概不让被嵌进来';
+  }, 12000);
+  const wrap = h('div', { style: { position: 'relative', width: '100%', height: '100%' } }, placeholder, frame);
+
+  barFrame = frame;
+  barWin = ui.window({
+    title: 'A Cocktail', sub: 'a-cocktail.com',
+    width: ENV.siteW + 'px', height: ENV.siteH + 'px',
+    fixedHeight: true, keepAlive: true,
+    /* ⚠️ keepAlive 的窗口关掉只是「收起」，DOM 留着 —— iframe 也就一直活着，
+     * **对方站点的背景音会一直响**（Iris 2026-08-28 发现的）。跨域 iframe 我们没法
+     * 从外面把它静音，所以关的时候直接把 src 卸掉，再开的时候装回去。
+     * 代价是再打开要重新加载一次，比"关了还在响"好。 */
+    onClose: () => { if (barFrame) { barFrame.src = 'about:blank'; barFrame.style.opacity = '0'; } },
+  });
+  barWin.setView(wrap);
+  barWin.setFooter([ui.spacer(), ui.btn({ label: '在新标签页打开', size: 'sm', variant: 'ghost', onClick: openOut })]);
+  sizeBar();
+}
+/* ⚠️ 尺寸要同时钉在 root 和 window 上（交接 5.2 那条坑）：
+ * `.y2k-window` 的宽是 `min(--y2k-w, 100%)`，只写在 window 上的话 100% 会解析成
+ * 被内容撑出来的那个宽度。 */
+function sizeBar() {
+  if (!barWin) return;
+  for (const el of [barWin.el, barWin.win]) {
+    el.style.setProperty('--y2k-w', ENV.siteW + 'px');
+    el.style.setProperty('--y2k-h', ENV.siteH + 'px');
+  }
+}
+stage.onParams(sizeBar);
+
+/* ================= Touch Bar 上那两个真能用的控件 =================
+ * 左边 ☀ + 轨道 = 屏幕亮度（ENV.screenLit），右边 🔊 = 声音总开关（audio.mute）。
+ * 键盘面是我们自己画的（共用/scene/键盘.js），所以按钮在贴图里的位置是已知的（TOUCHBAR），
+ * 拿射线打到键盘面的 `hit.uv` 和它比一下就知道点到哪个了。
+ * ⚠️ 贴图是 flipY = false，所以 uv.v 直接就是「画布 y / H」，不用翻。 */
+function hitTouchBar(ray) {
+  if (!deckMesh) return false;
+  const hit = ray.intersectObject(deckMesh, false)[0];
+  if (!hit || !hit.uv) return false;
+  const { x: u, y: v } = hit.uv;
+  const inBox = b => b && u >= b.x0 && u <= b.x1 && v >= b.y0 && v <= b.y1;
+  if (inBox(TOUCHBAR.track) || inBox(TOUCHBAR.sun)) {
+    // 点轨道上哪儿就设成哪个亮度；点太阳本身 = 回到 100
+    const b = TOUCHBAR.track;
+    ENV.screenLit = inBox(TOUCHBAR.sun)
+      ? 100
+      : Math.round(LIT_MIN + (LIT_MAX - LIT_MIN) * (u - b.x0) / (b.x1 - b.x0));
+    stage.applyParams();
+    redrawDeck();
+    return true;
+  }
+  if (inBox(TOUCHBAR.sound)) {
+    audio.mute(!audio.muted);
+    setSoundMuted(audio.muted);      // 键盘面上那个喇叭要跟着换样子
+    redrawDeck();
+    return true;
+  }
+  return false;
+}
+function redrawDeck() { deckTex?.userData?.redraw?.(); }
+
+/* ================= 凑近看电脑屏幕 =================
+ * 不是弹窗：镜头真的飞到屏幕前面，海、浪、泡泡、光照全都还在跑（Iris 要的就是这个）。
+ * 屏幕面片叫 mba_screen（物件_设备 的 glb 里），对着它的世界法线站住 ——
+ * 所以电脑被推走了、转了个方向，这儿都不用改。 */
+let deskOn = false, deskHint = null;
+function screenMesh() {
+  let m = null;
+  macbookObj && macbookObj.traverse(o => { if (o.isMesh && o.name === 'mba_screen') m = o; });
+  return m;
+}
+function enterDesk() {
+  const m = screenMesh();
+  if (!m) return;
+  stage.focusOnFace(m, { fill: 0.62, lift: 0.10, dur: 0.9 });
+  deskOn = true;
+  showHint(true);
+}
+function leaveDesk() {
+  if (!deskOn && !stage.isFocused()) return;
+  stage.unfocus({ dur: 0.8 });
+  deskOn = false;
+  showHint(false);
+}
+const toggleDesk = () => (deskOn ? leaveDesk() : enterDesk());
+/* 凑近之后点屏幕 = 换下一张壁纸。走 ENV + applyParams，
+ * 所以面板上的「屏幕风格」滑块会跟着跳，两边永远是一个值。 */
+function nextWallpaper() {
+  ENV.screenBg = (Math.round(ENV.screenBg) + 1) % SCREEN_BGS.length;
+  stage.applyParams();
+}
+/* 临时的提示条。**视觉归 UI 窗口**，这里只保证功能可用（见 PROJECT.md 的 UI 窗口待办）。 */
+function showHint(on) {
+  if (!deskHint) {
+    deskHint = document.createElement('div');
+    deskHint.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);' +
+      'z-index:9997;padding:6px 14px;border-radius:14px;pointer-events:none;opacity:0;' +
+      'background:rgba(18,21,28,.55);color:#dbe6f2;backdrop-filter:blur(6px);' +
+      'font:11px/1.6 -apple-system,"PingFang SC",sans-serif;letter-spacing:.08em;' +
+      'transition:opacity .35s';
+    deskHint.textContent = '按 Esc 或点空白处退回';
+    document.body.appendChild(deskHint);
+  }
+  deskHint.style.opacity = on ? '1' : '0';
+}
+addEventListener('keydown', e => { if (e.key === 'Escape') { leaveDesk(); leaveSea(); } });
+
+/* ================= 看海 =================
+ * 点海（水那边的空地）→ 镜头飞到水线上空，看浪来回、贝壳被推着走；
+ * 再点海 / Esc / 点空白 退回。和「点电脑凑近」是同一套语法。
+ *
+ * 为什么不是气泡提示：交互不给文字提示（Iris 的规矩），
+ * "能点"的信号交给光标 —— 兔子挪到海上会变成「到可触发范围」的表情。
+ * 为什么不开平移：Iris 08-29 定稿「中心不变」，看海是一个**定点机位**，
+ * 到了那边照样可以转（flyTo 会临时放开限位，退回时 unfocus 恢复）。 */
+let seaOn = false, seaHoverNow = false;
+const SEA_HIT_Z = -2.6;             // 地面交点 z 比这更远（更负）就算"点到海"
+function seaPointAt(ray) {
+  const t = -ray.ray.origin.y / ray.ray.direction.y;
+  if (t <= 0) return null;
+  const z = ray.ray.origin.z + ray.ray.direction.z * t;
+  return z < SEA_HIT_Z ? { x: ray.ray.origin.x + ray.ray.direction.x * t, z } : null;
+}
+function enterSea() {
+  // 机位 = 调贝壳分布时那个俯视位（Iris 08-30：「看海的本意是看贝壳」）——
+  // 从垫子前沿上空往下看整条贝壳带和来回的水线
+  stage.flyTo(new THREE.Vector3(0, 2.6, 0.6), new THREE.Vector3(0, 0, -2.4), { dur: 1.1 });
+  seaOn = true;
+  showHint(true);
+}
+function leaveSea() {
+  if (!seaOn) return;
+  stage.unfocus({ dur: 0.9 });
+  seaOn = false;
+  showHint(false);
+}
+const toggleSea = () => (seaOn ? leaveSea() : enterSea());
+
+/* ================= 相册（相机）================= */
+function openPhotos() {
+  openGallery({ width: ENV.galW + 'px', height: ENV.galH + 'px' });
+}
+stage.onParams(() => {
+  const w = [...document.querySelectorAll('.y2k-window')]
+    .find(x => (x.querySelector('.y2k-titlebar__title') || {}).textContent === '照片');
+  if (!w) return;
+  w.style.setProperty('--y2k-w', ENV.galW + 'px');
+  w.style.setProperty('--y2k-h', ENV.galH + 'px');
+});
+
+/* ================= 迷你播放器 =================
+ * 一个不带遮罩的小窗口，钉在右下角：现在放的是什么 + 上一首 / 暂停 / 下一首。
+ * 用的是同一套 ui.window，所以和唱片架、许愿窗是同一块玻璃。
+ * 上/下一首走 audio.next()/prev() —— 那是音乐层注册的 backend，
+ * 所以唱片架至少要被打开过一次；没打开过时按钮是灰的。 */
+let miniWin = null, miniEls = null;
+function buildMini() {
+  // 单行 + 省略号：文字换行会让窗口高度变，而它是靠右下角定位的 —— 一变就是"跳"
+  const clip = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' };
+  const thumb = h('img.y2k-row__thumb', { alt: '', style: { width: '34px', height: '34px', borderRadius: '5px', objectFit: 'cover', flex: '0 0 auto' } });
+  const title = h('span.y2k-row__title', { style: clip }, '—');
+  const sub   = h('span.y2k-row__sub', { style: clip }, '');
+  const prevB = ui.btn({ label: '⏮', size: 'sm', variant: 'ghost', title: '上一首', onClick: () => audio.prev() });
+  const playB = ui.btn({ label: '▶', size: 'sm', variant: 'primary', title: '播放 / 暂停', onClick: () => audio.toggle() });
+  const nextB = ui.btn({ label: '⏭', size: 'sm', variant: 'ghost', title: '下一首', onClick: () => audio.next() });
+  const openB = ui.btn({ label: '架', size: 'sm', variant: 'ghost', title: '打开唱片架', onClick: () => openMusic() });
+
+  miniWin = ui.window({
+    title: '正在放', sub: '', width: ENV.miniW + 'px',
+    height: ENV.miniH > 0 ? ENV.miniH + 'px' : 'auto',
+    fixedHeight: ENV.miniH > 0,
+    modal: false,               // 不要遮罩：它是常驻的，不该挡住场景
+    keepAlive: true,            // 关掉只是收起，下次换歌再冒出来
+    closeOnEsc: false, closeOnScrim: false,
+  });
+  // 非模态窗口的 root 是普通 div，位置得自己钉。右下角，让开「✦ 视觉参数」那颗按钮
+  // 非模态窗口的 root 是普通 div，位置和宽度都得自己钉。
+  // root 不给宽度的话它会缩到内容宽，而 .y2k-window 是 min(--y2k-w, 100%) —— 100% 就成了那个缩过的宽，
+  // 滑块拉大也不动。右下角，让开「✦ 视觉参数」那颗按钮。
+  Object.assign(miniWin.el.style, { position: 'fixed', right: '14px', bottom: '56px', zIndex: '880' });
+  sizeMini();
+  miniWin.setView(
+    h('div.y2k-section.y2k-section--tight', { style: { padding: '8px 10px 10px' } },
+      h('div.y2k-row.y2k-row--static', { style: { padding: '0 0 6px', gap: '8px', minWidth: '0' } },
+        thumb, h('span.y2k-row__main', { style: { minWidth: '0' } }, title, sub)),
+      h('div', { style: { display: 'flex', gap: '5px', alignItems: 'center' } },
+        prevB, playB, nextB, ui.spacer(), openB),
+    ),
+  );
+  miniEls = { thumb, title, sub, playB, prevB, nextB };
+  return miniWin;
+}
+/* 宽高都得钉在 root 上：.y2k-window 是 min(--y2k-w, 100%)，
+ * 而非模态窗口的 root 不给尺寸就会缩到内容大小 —— 100% 成了那个缩过的值，滑块拉不动。 */
+function sizeMini() {
+  if (!miniWin || miniWin.closed) return;
+  miniWin.el.style.width = ENV.miniW + 'px';
+  miniWin.el.style.height = ENV.miniH > 0 ? ENV.miniH + 'px' : '';
+  miniWin.win.style.setProperty('--y2k-w', ENV.miniW + 'px');
+  miniWin.win.style.setProperty('--y2k-h', ENV.miniH > 0 ? ENV.miniH + 'px' : 'auto');
+  miniWin.win.classList.toggle('y2k-window--fixed', ENV.miniH > 0);
+}
+{
+  let lastTrack = null;
+  audio.on('change', st => {
+    if (!st.trackId) return;                       // 还没选过歌就不冒出来
+    if (!miniWin) buildMini();
+    const e = miniEls;
+    if (st.cover && e.thumb.getAttribute('src') !== st.cover) e.thumb.src = st.cover;
+    e.title.textContent = st.title || '—';
+    e.sub.textContent = [st.artist, st.album].filter(Boolean).join(' — ');
+    e.playB.textContent = st.playing ? '⏸' : '▶';
+    e.playB.title = st.playing ? '暂停' : '播放';
+    miniWin.setTitle('正在放', st.playing ? '' : '已暂停');
+    // 换歌时只有「被收起来了」才叫它回来。
+    // 以前每次换歌都 reopen()，而 reopen 里有 api.focus() —— 焦点一跳，
+    // 窗口就跟着闪一下、看着像位置在跳。
+    if (st.trackId !== lastTrack) {
+      lastTrack = st.trackId;
+      if (miniWin.parked) {
+        const prev = document.activeElement;
+        miniWin.reopen();
+        try { prev?.focus?.({ preventScroll: true }); } catch { /* 元素可能已经没了 */ }
+      }
+    }
+  });
+}
+
+/* ================= 循环 ================= */
+let time = 0, frames = 0;
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  time += dt;
+  for (const f of tickers) { try { f(dt, time); } catch (e) { if (!f.__err) { f.__err = true; console.error('ticker 出错，已跳过：', e); } } }
+  stage.render(dt);
+  frames++;
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ================= 存图（POST /save → 共用/渲染/，服务器不在就退回下载） ================= */
+function setCam(azDeg, pitchDeg, dist) {
+  const t = stage.controls.target;
+  const az = azDeg * Math.PI / 180;
+  const po = Math.PI / 2 - pitchDeg * Math.PI / 180;
+  const d = dist || stage.camera.position.distanceTo(t);
+  stage.camera.position.set(
+    t.x + d * Math.sin(po) * Math.sin(az),
+    t.y + d * Math.cos(po),
+    t.z + d * Math.sin(po) * Math.cos(az));
+  stage.controls.update();
+}
+function captureAs(name) {
+  stage.render(1 / 60);
+  const data = canvas.toDataURL('image/png');
+  return fetch(`/save?name=${encodeURIComponent(name)}.png&dir=${encodeURIComponent('共用')}`,
+    { method: 'POST', body: data })
+    .then(r => { if (!r.ok) throw 0; return 'saved'; })
+    .catch(() => { const a = document.createElement('a'); a.download = name + '.png'; a.href = data; a.click(); return 'downloaded'; });
+}
+window.setCam = setCam;
+window.captureAs = captureAs;
+window.__dbg = { stage, THREE };
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+{
+ "说明": "2026-08-26 调查 + 当天修正。⚠️ 第一版按歌名匹配，把 (Instrumental) 当括号注释剥掉了，结果 10 首配到人声版/别的版本/别的专辑。**一律按 Apple 专辑的 trackNumber 对位，不要用歌名匹配。** iTunes Search API 约 120 次请求就 403；补数据用 lookup?id=<appleAlbumId>&entity=song（一次一整张）。",
+ "合计": {
+  "曲目": 54,
+  "spotify有试听": 47,
+  "apple有preview": 54
+ },
+ "专辑": {
+  "Supernatural": {
+   "曲目数": 4,
+   "spotify": 4,
+   "apple": 4,
+   "曲目": [
+    {
+     "title": "Supernatural",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1750576834,
+     "appleTrackName": "Supernatural",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/41/ce/f9/41cef96a-6b48-2ddd-72a8-f479e7a1c752/mzaf_5570335600994446876.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Right Now",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1750576838,
+     "appleTrackName": "Right Now",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d9/a5/ff/d9a5ff09-9936-60c3-322d-6541eb8228a0/mzaf_8507832924895951906.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Supernatural (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1750576846,
+     "appleTrackName": "Supernatural (Instrumental)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/54/37/ea/5437eafd-88eb-1bd8-8820-a7db4e10e6b8/mzaf_2206439411773151287.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Right Now (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1750576848,
+     "appleTrackName": "Right Now",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ca/f5/08/caf50809-faf4-7a50-f4d5-3ca9eaf0bf33/mzaf_4788667005915297884.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    }
+   ]
+  },
+  "How Sweet": {
+   "曲目数": 4,
+   "spotify": 4,
+   "apple": 4,
+   "曲目": [
+    {
+     "title": "How Sweet",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1744448416,
+     "appleTrackName": "How Sweet",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4d/f8/ec/4df8ec06-579b-0b92-1c4d-d8714cc5d1bc/mzaf_8361635933595309894.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Bubble Gum",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1744448549,
+     "appleTrackName": "Bubble Gum",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/94/d6/aa/94d6aab6-6654-5aca-dbf8-9874b7975bcd/mzaf_16231939766265640228.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "How Sweet (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1744448551,
+     "appleTrackName": "How Sweet",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/66/1e/53/661e53a0-7b94-a107-5566-3c0965ecbe9a/mzaf_16927712233418403912.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Bubble Gum (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1744448555,
+     "appleTrackName": "Bubble Gum",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/55/cf/ca/55cfca9e-66fb-39a8-ed00-72e587332ed0/mzaf_14657405780734511175.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    }
+   ]
+  },
+  "NJWMX": {
+   "曲目数": 12,
+   "spotify": 12,
+   "apple": 12,
+   "曲目": [
+    {
+     "title": "Ditto (250 Remix)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675894,
+     "appleTrackName": "Ditto (250 Remix)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/9c/24/22/9c2422b8-bd90-73ef-dc91-53447501defd/mzaf_3220046181659171521.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "OMG (FRNK Remix)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675900,
+     "appleTrackName": "OMG (FRNK Remix)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c7/8a/ce/c78ace6e-d0cf-39d5-2cf8-03f0f47757eb/mzaf_6157086767733036339.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Attention (250 Remix)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675905,
+     "appleTrackName": "Attention (250 Remix)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/1c/f8/8c/1cf88c7d-d53c-0390-df4f-4c811fd5656f/mzaf_5270976809792294234.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Hype Boy (250 Remix)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675908,
+     "appleTrackName": "Hype Boy (250 Remix) [Alternate]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/83/81/38/8381388c-174f-9d14-2195-c2d05e9928a1/mzaf_2004875623485883148.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Cookie (FRNK Remix)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675909,
+     "appleTrackName": "Cookie (FRNK Remix) [Alternate]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/23/e2/b1/23e2b1ca-bb55-495e-144f-66428ef087e4/mzaf_1255983532844140691.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Hurt (250 Remix)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675914,
+     "appleTrackName": "Hurt (250 Remix)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c2/8e/d7/c28ed715-c3ba-3783-5b4e-099043cb484d/mzaf_9812539762910171858.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Ditto (250 Remix) (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719675916,
+     "appleTrackName": "Ditto (250 Remix) [Instrumental]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/fb/77/7b/fb777be1-35d9-fcd2-e0e9-73e7196f2dc5/mzaf_11884354558156667393.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "OMG (FRNK Remix) (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719676158,
+     "appleTrackName": "OMG (FRNK Remix) [Instrumental]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/bb/bf/35/bbbf3523-8048-6322-8876-36e59b0de8e1/mzaf_7696172654545998345.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Attention (250 Remix) (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719676164,
+     "appleTrackName": "Attention (250 Remix) [Instrumental]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/94/58/d8/9458d887-c4f3-9250-f13e-d28cc828b2a7/mzaf_8373480962038954727.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Hype Boy (250 Remix) (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719676166,
+     "appleTrackName": "Hype Boy (250 Remix) [Instrumental]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ae/00/10/ae0010ea-653e-9b96-f933-9f9e795d7862/mzaf_6851475643826315235.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Cookie (FRNK Remix) (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719676279,
+     "appleTrackName": "Cookie (FRNK Remix) [Instrumental]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/6f/3f/39/6f3f39be-c47d-5741-668f-635a43e1d09a/mzaf_6344091502621127882.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Hurt (250 Remix) (Instrumental)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1719676306,
+     "appleTrackName": "Hurt (250 Remix) [Instrumental]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b3/cc/39/b3cc3972-c66a-ac4a-a763-b7ac19e4f169/mzaf_3872730702217111820.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    }
+   ]
+  },
+  "Kei Nishikori meets Nujabes": {
+   "曲目数": 17,
+   "spotify": 17,
+   "apple": 17,
+   "曲目": [
+    {
+     "title": "Another Reflection",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923065,
+     "appleTrackName": "Another Reflection",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/6d/fc/d3/6dfcd36c-dab0-6c1b-9341-06cb17b3d631/mzaf_18131513798374305675.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Spiritual State",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923066,
+     "appleTrackName": "Spiritual State (feat. Uyama Hiroto)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/3e/fa/84/3efa849b-b445-e782-3cd4-231befd0ec62/mzaf_6271436488190275266.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Luv (sic) pt2",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923067,
+     "appleTrackName": "Luv (sic), Pt. 2",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/7d/0f/be/7d0fbec9-a2b1-b386-0a5b-5a308b9e29d3/mzaf_9504001162444648229.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "The Final View",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923068,
+     "appleTrackName": "The Final View",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/5c/4e/70/5c4e7010-6f79-b611-2288-71449f09bb3d/mzaf_2581426563331842032.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "A day by atmosphere supreme",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923069,
+     "appleTrackName": "A Day by Atmosphere Supreme",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/60/40/62/60406210-c787-f267-d29f-597fe85086cc/mzaf_10251490181426487464.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Luv (sic) pt4 (feat. Shing02)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923070,
+     "appleTrackName": "Luv (sic), Pt. 4 (feat. Shing02)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/6f/ea/e4/6feae4a4-cf13-44fd-59a5-bb929e947bd6/mzaf_12093719535267473081.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Beat laments the world",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923521,
+     "appleTrackName": "Beat Laments the World",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/50/9a/ab/509aab49-46fb-bc3d-c616-79c743dc0ad0/mzaf_532840430535960700.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "City Lights",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923522,
+     "appleTrackName": "City Lights (feat. Pase Rock & Substantial)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/e6/8d/5c/e68d5cb8-9ecc-64ad-3f9a-649885158dbb/mzaf_9870511261490690258.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Luv (sic)",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923523,
+     "appleTrackName": "Luv(sic.), Pt. 3 [feat. Shing02]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/d6/a9/2f/d6a92f50-505e-a146-3a95-9d9b0f1f3415/mzaf_9976441952649253076.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Horizon",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923524,
+     "appleTrackName": "Horizon",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/67/ca/0f/67ca0f81-386e-fad9-e6d8-12d41c80c0ab/mzaf_10491109041163790998.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Luv (sic.) pt3",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923525,
+     "appleTrackName": "Luv(sic.), Pt. 3 [feat. Shing02]",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/26/52/01/265201af-2697-c114-a3ca-1ec3797dd3b8/mzaf_1897975554057315245.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Feather",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923526,
+     "appleTrackName": "Feather (feat. Cise Starr & Akin)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/5e/c2/00/5ec20040-e85b-77c0-6976-571fa4aebd3c/mzaf_8009078761645376098.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Searching For You",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923531,
+     "appleTrackName": "Searching for You",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/54/2e/e1/542ee175-315e-f67d-914e-b10730f52c8d/mzaf_4988394828058962138.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Spiral",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923533,
+     "appleTrackName": "Spiral",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/9c/c3/79/9cc3795f-a4db-b9c8-401e-2be0a8301ce3/mzaf_14102076446784956964.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "Counting Stars",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923534,
+     "appleTrackName": "Counting Stars",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/07/78/e8/0778e842-d029-2987-a516-0d1b8c103907/mzaf_7827798918382547195.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "reflection eternal",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923535,
+     "appleTrackName": "Reflection Eternal",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/73/92/04/73920470-b7f0-27b4-a500-f78ebdff012a/mzaf_12097243895745096726.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    },
+    {
+     "title": "After Hanabi -Listen to My Beats-",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1078923536,
+     "appleTrackName": "After Hanabi - Listen to My Beats",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/8f/1f/88/8f1f885a-b2db-9029-908d-4823b6b41f2b/mzaf_5949039441072944166.plus.aac.p.m4a",
+     "applePreviewSec": 29.98
+    }
+   ]
+  },
+  "Sons of 1973": {
+   "曲目数": 7,
+   "spotify": 0,
+   "apple": 7,
+   "曲目": [
+    {
+     "title": "Best Friend",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804827968,
+     "appleTrackName": "Best Friend",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/de/18/3f/de183fe0-b968-9805-75fc-85fbd2870787/mzaf_16041649160631541851.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    },
+    {
+     "title": "夏の続き",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804827971,
+     "appleTrackName": "Natsuno Tsuduki",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/50/7f/a3/507fa3ac-09af-badb-15cb-925420d6af75/mzaf_4540116478961504056.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    },
+    {
+     "title": "How Much I Love You, Baby",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804827973,
+     "appleTrackName": "How Much I Love you,baby",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/dd/8a/20/dd8a206f-5474-d418-3f39-9124400e9998/mzaf_8787673930705524803.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    },
+    {
+     "title": "Sunnyday, Holiday",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804827976,
+     "appleTrackName": "Sunnyday,Holiday",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b3/2f/4e/b32f4efc-a6c3-19e6-b35b-b0bdbd15d364/mzaf_17515866562876776688.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    },
+    {
+     "title": "空へ (S.L. Meets Hv!)",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804827978,
+     "appleTrackName": "Sorahe",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/86/c8/46/86c8469b-da9e-4e5f-aa8f-e8819e1a3936/mzaf_9032190894293754795.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    },
+    {
+     "title": "外はいい天気",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804828042,
+     "appleTrackName": "Soto wa ii tenki",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ab/f4/c4/abf4c4cd-391c-0967-7f8a-7bcb6dd3d151/mzaf_14128908374080714602.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    },
+    {
+     "title": "Sunshine Love (Lover's Picnic Version)",
+     "spotify": false,
+     "apple": true,
+     "appleTrackId": 1804828044,
+     "appleTrackName": "Sunshine Love (Lover's picnic version)",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/37/63/8a/37638ae5-f9a7-7ee2-4b39-88ed925d7af8/mzaf_8008673070012614353.plus.aac.p.m4a",
+     "applePreviewSec": 30.02
+    }
+   ]
+  },
+  "如果每天都可以 happy happy 誰想要sad:)) - 一起去度假": {
+   "曲目数": 10,
+   "spotify": 10,
+   "apple": 10,
+   "曲目": [
+    {
+     "title": "New notes",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903620,
+     "appleTrackName": "New notes",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5a/24/44/5a24449d-c2a8-71c1-dbe6-85e4456a0ee3/mzaf_8158187045711020970.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "e04嘛那麼累",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903622,
+     "appleTrackName": "e04 so tired",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8c/71/60/8c716077-638c-da47-97a7-db6de9afcefe/mzaf_194999288671456112.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Super hyper",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903623,
+     "appleTrackName": "Super hyper",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8c/83/76/8c8376d8-427c-e887-5954-446f4311a6e8/mzaf_17576478634229073173.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "科幻小說",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903625,
+     "appleTrackName": "Sci-fi",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/37/37/70/37377096-bd72-cd0f-1983-d6744df82d9d/mzaf_8297350837692810214.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "吸塵器 維他命",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903627,
+     "appleTrackName": "VacuumB",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ac/4e/bc/ac4ebcb7-c0c4-1367-5128-33c6a6f17dad/mzaf_3618712220723385462.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Whisper to my ear",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903628,
+     "appleTrackName": "Whisper to My Ear",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a9/d4/2e/a9d42e45-e869-b9ca-b31a-fefb47dd4206/mzaf_18199785153109631864.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "春雨",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903629,
+     "appleTrackName": "It's a Rainy Day",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/af/81/09/af810999-e8c7-7191-2ed7-8bb24039bc62/mzaf_11478487524077249121.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "結晶",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903750,
+     "appleTrackName": "The moment",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/21/6e/4b/216e4b62-7d0b-7baf-21ab-5602a0929e55/mzaf_8315761872415470107.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "Wui229",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903751,
+     "appleTrackName": "Wui229",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/59/b9/f4/59b9f44d-308e-db3d-298c-15e4e3ee0fd3/mzaf_7688935202351904198.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    },
+    {
+     "title": "如果每天都可以 happy happy 誰想要sad:))",
+     "spotify": true,
+     "apple": true,
+     "appleTrackId": 1799903752,
+     "appleTrackName": "happy happy/sad:))",
+     "applePreviewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d5/ff/93/d5ff93a7-2c0b-e2c4-f64f-bf23c3609498/mzaf_13594939706966217636.plus.aac.p.m4a",
+     "applePreviewSec": 30
+    }
+   ]
+  }
+ }
+}

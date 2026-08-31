@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>材质对比 · 玻璃 vs 泡泡</title>
+<link rel="stylesheet" href="../共用/ui.css">
+<style>
+  /* 两块一样的面板，同一个背景，只有材质不同 —— 别加任何别的变量进来。 */
+  html { background: #0E1930; }
+  body {
+    margin: 0; padding: 26px 20px 40px;
+    min-height: 100vh;
+    font: 13px/1.6 -apple-system, "PingFang SC", sans-serif;
+    color: #DCE9F5;
+    background:
+      radial-gradient(60% 38% at 76% 14%, rgba(255,196,150,.30) 0%, transparent 62%),
+      radial-gradient(120% 70% at 50% 106%, rgba(230,207,195,.50) 0%, transparent 60%),
+      linear-gradient(180deg, #0E1930 0%, #1E2F5C 20%, #3E6091 44%, #6C98C8 70%, #E6CFC3 100%);
+    background-attachment: fixed;
+  }
+  /* 背景里放点「结构」—— 纯渐变上看不出清透和折射的区别 */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background:
+      repeating-linear-gradient(96deg, rgba(255,255,255,.06) 0 3px, transparent 3px 11px),
+      repeating-linear-gradient(2deg, rgba(255,255,255,.04) 0 2px, transparent 2px 24px);
+  }
+  h1 {
+    margin: 0 0 4px; text-align: center;
+    font-size: 12px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase;
+    color: #BCD4EA;
+  }
+  .lede { margin: 0 auto 22px; max-width: 46em; text-align: center;
+          font-size: 12px; color: #94AEC9; }
+  .pair {
+    position: relative; z-index: 1;
+    display: flex; gap: 26px; justify-content: center; align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .slot { width: 380px; max-width: 100%; }
+  .slot > h2 {
+    margin: 0 0 4px; font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #CFE3F5;
+  }
+  .slot > p { margin: 0 0 12px; font-size: 11.5px; color: #90A9C4; min-height: 3.4em; }
+</style>
+</head>
+<body>
+
+<h1>材质对比</h1>
+<p class="lede">同一个面板、同一个背景，只有材质不同。背景故意加了细条纹 —— 纯渐变上看不出「清透」和「折射」的差别。</p>
+
+<div class="pair">
+  <div class="slot">
+    <h2>A · 玻璃</h2>
+    <p>有厚度、有重量、边缘硬朗，像一块真镜片压在沙滩上。<b>几乎不模糊</b>——
+       可读性靠「压暗」而不是「糊」，背景的变形全部来自边缘折射。</p>
+    <div id="a"></div>
+  </div>
+  <div class="slot">
+    <h2>B · 泡泡</h2>
+    <p>沿用场景里许愿泡泡的语言。完全不模糊、几乎全透，只有一圈软的虹彩菲涅尔边
+       ＋ 中间一团内核光。没有重量，随时会破。</p>
+    <div id="b"></div>
+  </div>
+</div>
+
+<script type="module">
+import { ui, h } from '../共用/ui.js';
+import { ALBUMS } from './albums.js';
+
+const album = ALBUMS.find(a => a.id === 'kei-nujabes') || ALBUMS[0];
+
+/* 两个窗口内容完全一样，只差 material —— 这就是全部的变量 */
+function panel(mountId, material) {
+  const win = ui.window({
+    title: 'VINYL', sub: material === 'glass' ? '玻璃' : '泡泡',
+    width: '380px', height: '470px', fixedHeight: true,
+    modal: false, mount: document.getElementById(mountId),
+    draggable: false, material,
+  });
+  win.setView(
+    ui.scroll(
+      h('div.y2k-section',
+        h('div', { style: { display: 'flex', gap: '12px', alignItems: 'flex-start' } },
+          h('span.y2k-card__art', { style: { flex: 'none', width: '78px' } },
+            h('img', { src: album.cover, alt: '' })),
+          h('div', { style: { flex: '1 1 auto', minWidth: 0 } },
+            h('div', { style: { fontSize: '15px', fontWeight: '700' } }, album.title),
+            h('div.y2k-note', { style: { marginTop: '3px' } },
+              [album.artist, album.year].filter(Boolean).join(' · ')),
+            h('div', { style: { marginTop: '8px' } }, ui.tag({ label: '30 秒试听', variant: 'citron' })),
+          ),
+        ),
+      ),
+      ui.divider(),
+      ui.list(album.tracks.slice(0, 6).map((t, i) => ui.row({
+        index: i + 1, title: t.title, sub: t.artist && t.artist !== album.artist ? t.artist : null,
+        meta: t.duration, active: i === 2, playing: i === 2, static: true,
+      }))),
+    ),
+  );
+  win.setFooter(
+    ui.btn({ label: '返回', icon: '←', variant: 'ghost' }),
+    ui.spacer(),
+    ui.btn({ label: '在 Spotify 中打开', variant: 'primary', ext: true }),
+  );
+  return win;
+}
+
+panel('a', 'glass');
+panel('b', 'bubble');
+
+/* 折射只有 Chromium 有，说清楚免得在别的浏览器上白比 */
+if (!ui.canRefract) {
+  const note = h('p.lede', { style: { marginTop: '18px', color: '#C7A98F' } },
+    '⚠️ 这个浏览器不支持把 SVG 滤镜用作 backdrop-filter（只有 Chromium 支持），'
+    + '两块都退回了没有折射的版本 —— 要判断材质请用 Chrome。');
+  document.querySelector('.lede').after(note);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1834 @@
+/* ============================================================================
+ * 共用/ui.css —— 全站 UI 设计系统（千禧年 · liquid glass）
+ *
+ * owner: 窗口 D。产出自「播放器逼出设计系统」这条路线（见 规格_音乐层.md）。
+ * 播放器是全站最复杂的弹窗，它需要的组件就是全站需要的组件。
+ *
+ * 用法：任何弹窗页面
+ *     <link rel="stylesheet" href="共用/ui.css">   或   import '共用/ui.js'（会自动注入）
+ * 然后只用 .y2k-* 类名搭界面，不要为某个页面重写组件。
+ *
+ * ---------------------------------------------------------------------------
+ * 材质：liquid glass（Iris 定，2026-08-22）
+ * 参考 视觉参考/05_交互与UI/ 里那两张 iOS 截图。
+ *
+ * 关键是**别做成毛玻璃**。两者完全不同：
+ *
+ *              毛玻璃（之前做错的）        liquid glass（要的）
+ *   透明度      低，背景糊成一团            高，背景看得清是什么
+ *   模糊        很重（20px+）              轻（10–14px）+ 提饱和
+ *   边缘        一条描边                   **一圈会亮的折射边**，是全部的重点
+ *   感觉        磨砂塑料片                 一块有厚度的透明玻璃 / 镜片
+ *
+ * 三件事凑起来才像玻璃：
+ *   1. 薄 —— 染色只有 10~20% 的白，背后的浪和沙滩要认得出来
+ *   2. 提饱和 —— saturate(1.7) 让穿过玻璃的颜色更浓，这是「透光」而不是「蒙住」
+ *   3. **迎光边** —— 沿着圆角有一圈明暗不均的亮边，还带一点点色散（冷/暖）。
+ *      这一条贡献了 70% 的效果，跟宪法 1.5 节的菲涅尔边缘光是同一个道理。
+ *
+ * 因为玻璃很薄、背后是暗沙滩，**文字必须是浅色的**（两张参考图都是浅字）。
+ * 想换回「浅底深字」的话，改第 1 节的 --y2k-ink / --y2k-tint 那几个令牌即可，
+ * 组件规则一行都不用动。
+ *
+ * 其余视觉基准仍是 风格宪法.md + 视觉参考/01_风格总调/：
+ *   极淡的冰蓝、小字号大字距的等宽标签、一层颗粒。
+ *   禁止：Spotify 深绿、Material / iOS 扁平配色、赛博霓虹（宪法 第三节 禁令）。
+ *
+ * 命名约定：.y2k-块  /  .y2k-块__元素  /  .is-状态
+ * ========================================================================== */
+
+/* 把这两个自定义属性声明成长度百分比，浏览器才肯对它们做补间 ——
+ * 不声明的话它们是「无类型字符串」，transition 只会硬跳。
+ * 这是指针高光跟手时那点「粘」的来源。 */
+@property --y2k-mx { syntax: '<percentage>'; inherits: false; initial-value: 22%; }
+@property --y2k-my { syntax: '<percentage>'; inherits: false; initial-value: -6%; }
+
+/* ============================ 1 · 设计令牌 ============================ */
+/* 想换皮就改这里；不要去改下面的组件规则。 */
+:root {
+  /* — 字色 ————————————————————————————————————————————
+   * 玻璃很薄，背后是暗沙滩，所以字是浅的。 */
+  --y2k-ink:         #EEF7FE;   /* 正文 / 标题 */
+  --y2k-ink-soft:    #B9D2E6;   /* 次要文字、元信息 */
+  --y2k-ink-faint:   #8AA6BE;   /* 占位、禁用 */
+  /* 浅字压在会变化的背景上，需要一点点阴影才站得住 */
+  --y2k-ink-shadow:  0 1px 2px rgba(6, 20, 36, .45);
+
+  /* — 玻璃本体 · 默认值 ————————————————————————————————
+   * ⚠️ 这一段是「玻璃」这套材质的默认值。另一套「泡泡」在第 1.5 节。
+   *
+   * ★ 这组数是 Iris 2026-08-22 在真场景里拖出来的（音乐层/场景里试.html），
+   *   不要凭感觉改回去。她挑的方向是：**不压暗** + 一层很轻的白 + 比较厚的模糊。
+   *
+   * 关于「发灰」—— 之前灰是因为熏色 30% 和白染色叠在一起。
+   * 熏色归零之后，同样的白读起来是「亮」而不是「灰」：
+   * 压暗会让整块面板往灰里走，不压暗的话它就是一片被照亮的雾。
+   * 所以这两个不是一条轴上的东西，别再把熏色当成「让字读得清」的旋钮 ——
+   * 那是 --y2k-plate 的活。 */
+  --y2k-shade:       rgba(6, 18, 38, 0);        /* 不压暗 */
+  --y2k-tint:        rgba(255, 255, 255, .10);
+  --y2k-tint-strong: rgba(255, 255, 255, .14);
+  --y2k-tint-hover:  rgba(255, 255, 255, .14);
+  --y2k-tint-sunken: rgba(4, 14, 30, .22);      /* 凹陷区：往暗里走 */
+  --y2k-core:        rgba(196, 232, 255, .20);  /* 内核发光：玻璃也留一点 */
+  /* ⚠️ 模糊要**很轻**。重点是折射，不是磨砂 ——
+   * 玻璃真正的可读性来自「边缘弯 + 中心清晰」的对比，糊上去只会把沙滩变成一团灰。
+   * 没有折射的浏览器上这个值会被加重（见第 2.9 节），因为那时候只剩模糊可用了。 */
+  --y2k-blur:        blur(2.5px) saturate(1.55) brightness(1.02);
+
+  /* 指针光斑：小而亮的一点，不是一大团。 */
+  --y2k-spec-a:      .40;
+  --y2k-spec-r:      40px;
+
+  /* 「文字垫底」：只垫在有字的那块（内容区），不是整块面板。
+   * 想更透但字要读得清，动这个，别去加白染色 —— 白染色是整块发乳的来源。 */
+  --y2k-plate:       rgba(6, 20, 40, .03);
+  --y2k-hair:        rgba(255, 255, 255, .22);  /* 分隔线 / 虚线的颜色 */
+
+  /* 「跟着内容染色」：窗口可以被当前内容的主色轻轻染一下。
+   * 播放器用它把整块玻璃染成当前这张唱片的颜色 —— 这样底下那条 Spotify
+   * 播放条（它的底色也是从封面取的）就不像一块外来的色块，而像是同一件东西。
+   * 默认 0 = 不染（Iris 定）。想要就把 mix 调到 10~15%。 */
+  --y2k-album:       transparent;
+  --y2k-album-mix:   0%;
+
+  /* — 折射边（liquid glass 的命根子）——————————————————————
+   * 沿着圆角走一圈的亮边，明暗不均，两头亮中间淡，
+   * 再掺一点冷色和暖色当色散。 */
+  --y2k-rim-a:       1;         /* 算出来那圈边缘光的强度。0 = 关掉看对照 */
+  --y2k-rim-w:       .6px;      /* 一条发丝细的边（Iris 定）—— 粗了就像个边框 */
+  --y2k-rim-hi:      rgba(255, 255, 255, 1);     /* 迎光的一头 */
+  --y2k-rim-cool:    rgba(196, 232, 255, .70);   /* 折射出的冷色 */
+  --y2k-rim-warm:    rgba(255, 208, 232, .58);   /* 折射出的暖色（色散） */
+  --y2k-rim-lo:      rgba(255, 255, 255, .18);   /* 背光的一头 */
+
+  /* — 强调色 ———————————————————————————————————————————— */
+  --y2k-accent:      #9AD6FF;   /* 强调（选中、进度、链接） */
+  --y2k-accent-hi:   #DCF1FF;   /* 强调的亮色，压在玻璃上的文字用 */
+  --y2k-accent-pale: rgba(154, 214, 255, .20);   /* 选中的底 */
+  --y2k-blush:       #FFB3D0;   /* 腮红粉 —— 全场唯一高饱和，省着用 */
+  --y2k-citron:      #E6F5A3;   /* 柠檬绿，只做极小的点缀 */
+
+  --y2k-scrim:       rgba(6, 16, 30, .30);   /* 遮罩：只压一点点，
+                                                压重了玻璃就没东西可折射 */
+
+  /* — 尺寸与形状 ———————————————————————————————————————
+   * liquid glass 的圆角比千禧年窗口大一圈 —— 那是「一块有厚度的玻璃」的形状。 */
+  --y2k-r:           22px;      /* 窗口圆角 */
+  --y2k-r-sm:        13px;      /* 控件圆角 */
+  --y2k-r-xs:        8px;
+  --y2k-gap:         12px;
+  --y2k-pad:         16px;
+  --y2k-card-w:      136px;     /* 网格卡片的最小列宽；窄屏在下面的媒体查询里放大 */
+
+  /* — 阴影 ———————————————————————————————————————————— */
+  --y2k-shadow-soft: 0 24px 60px rgba(2, 10, 22, .55);
+  --y2k-glow:        0 0 46px rgba(140, 200, 245, .22);
+  /* 玻璃的厚度感：贴着折射边再往里一圈更淡的内壁 + 顶上一条亮线。
+   * 两圈叠起来才像「一块有厚度的玻璃」，只有一圈是「一张贴纸」。 */
+  /* ⚠️ 这里只留一圈**极淡**的内壁。
+   * 「顶上一条亮线」那种手画高光已经删掉了 —— 边缘光现在是从穹顶的法线算出来的
+   * （ui.js 第 2 节），手画的那条角度对不上，两条叠在一起会看出「两层边」。
+   * 想加东西回来之前先问：它在物理上是什么？答不上来就别加。 */
+  --y2k-thickness:   inset 0 0 0 1px rgba(255, 255, 255, .10);
+
+  /* — 字 ————————————————————————————————————————————
+   * 不加载任何外部字体：全站离线可跑。
+   * Y2K 感来自「等宽 + 大写 + 大字距 + 小字号」，不来自字体文件。 */
+  --y2k-font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+              "Microsoft YaHei", system-ui, sans-serif;
+  --y2k-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+              "PingFang SC", monospace;
+
+  /* — 动效 ———————————————————————————————————————————— */
+  --y2k-ease:  cubic-bezier(.2, .9, .25, 1);
+  /* 带一点点过冲：窗口弹出来会稍微涨过头再落定，像一滴液体落下去。
+   * 别调太狠，过了就成弹簧玩具了。 */
+  --y2k-ease-liquid: cubic-bezier(.22, 1.28, .36, 1);
+  --y2k-fast:  120ms;
+  --y2k-base:  220ms;
+  --y2k-slow:  380ms;
+
+  /* 颗粒：宪法 v1.0 **已取消**（场景走向干净明亮）。留个旋钮但默认关。 */
+  --y2k-grain-a:     0;
+
+  --y2k-z:     900;             /* 弹窗层的基准 z-index */
+}
+
+/* ============================ 1.4 · 字色：浅字 / 深字 ============================ */
+/* 玻璃一旦「不压暗」（--y2k-shade: 0），面板就是一片**亮**的雾，
+ * 这时候浅色的字压在亮沙、亮格纹垫子上会直接消失。
+ * 材质换了极性，字也得跟着换 —— 亮面板配深字，那正好也是
+ * 视觉参考/01_风格总调/ 里明日鼠和 supercat 的原味千禧感。
+ *
+ * 用法：ui.window({ ink: 'dark' })，或 win.setInk('dark' | 'light')。
+ * 判断标准很简单：**面板整体比背景亮 → 深字；比背景暗 → 浅字。** */
+.y2k-ink-dark {
+  --y2k-ink:         #1E3A57;
+  --y2k-ink-soft:    #40658A;
+  --y2k-ink-faint:   #6C8AA8;
+  /* 深字压在亮雾上，要的是一条极淡的白色「浮起」阴影，不是黑影 */
+  --y2k-ink-shadow:  0 1px 0 rgba(255, 255, 255, .55);
+  --y2k-accent:      #2E7FC0;
+  --y2k-accent-hi:   #185B94;
+  --y2k-accent-pale: rgba(46, 127, 192, .16);
+  /* 背后是**亮而且花**的沙滩（格纹垫子、黑笔电、彩色鸡尾酒）。
+   * 深字要读得清，靠的不是把整块玻璃染白（那会发乳、也把折射盖掉），
+   * 而是只在**要读字的那一块**垫一层白 —— 外面一圈照样薄。
+   * iOS 也是这么分的：chrome 更透，承载内容的那块更实。 */
+  --y2k-plate:       rgba(255, 255, 255, .34);
+  --y2k-rim-hi:      rgba(255, 255, 255, 1);
+  --y2k-rim-lo:      rgba(120, 160, 195, .30);
+  --y2k-hair:        rgba(40, 78, 112, .22);     /* 亮雾上的线要往深里走，白线看不见 */
+  /* 亮面板上，行的 hover / 选中要往「更暗」走，不是更白 */
+  --y2k-tint-hover:  rgba(30, 60, 92, .07);
+  --y2k-tint-sunken: rgba(30, 60, 92, .10);
+}
+
+/* ============================ 1.5 · 另一套材质：泡泡 ============================ */
+/* 沿用场景里那些许愿泡泡的语言（见 共用/渲染/28_泡泡形状_圆圈爱心猫狗.png）：
+ * 中间几乎全透、完全不糊，只有一圈软软的菲涅尔亮边，加一点皂膜的虹彩。
+ * 这正是 风格宪法 1.5 节说的「物件本身半透明、内部透出光」。
+ *
+ * 跟玻璃的分工：
+ *   玻璃 —— 有厚度、有重量、边缘硬朗，像一块真的镜片压在沙滩上
+ *   泡泡 —— 没有重量、随时会破，更接近梦核的「空」
+ *
+ * 用法：ui.window({ material: 'bubble' })，或 ui.setMaterial('bubble') 改全站默认。 */
+.y2k-mat-bubble {
+  /* 跟玻璃拉开的关键在这三行：几乎不熏、几乎不染、完全不糊。
+   * 玻璃是「一块压在沙滩上的镜片」，泡泡是「一层膜」—— 后者应该几乎不存在。 */
+  --y2k-shade:       rgba(12, 32, 58, .13);      /* 玻璃的三分之一 */
+  --y2k-tint:        rgba(255, 255, 255, .03);
+  --y2k-tint-strong: rgba(255, 255, 255, .05);
+  --y2k-tint-hover:  rgba(255, 255, 255, .12);
+  --y2k-tint-sunken: rgba(8, 24, 44, .18);
+  --y2k-spec-a:      .16;                        /* 泡膜反光更亮 */
+  --y2k-spec-r:      120px;
+  --y2k-plate:       rgba(6, 20, 40, .20);       /* 泡膜几乎不压暗，字底下要多垫一点 */
+
+  /* 完全不模糊。泡膜是透明的，你能看清背后的每一根草。 */
+  --y2k-blur:        blur(0px) saturate(1.5) brightness(1.10);
+  /* 内核发光：中间一团很淡的光，从身体里透出来（宪法 1.5 节的「内核发光体」）。
+   * 顺带把字托住 —— 泡膜几乎不压暗，全靠这团光给中间一点底。 */
+  --y2k-core:        rgba(200, 234, 255, .17);
+
+  /* 皂膜虹彩：边缘那圈不是白的，是粉—青—金在转。
+   * 这是泡泡跟玻璃最大的区别，也是「薄膜干涉」的样子。 */
+  --y2k-rim-w:       3px;
+  --y2k-rim-hi:      rgba(255, 255, 255, 1);
+  --y2k-rim-cool:    rgba(158, 240, 255, .88);
+  --y2k-rim-warm:    rgba(255, 190, 228, .82);
+  --y2k-rim-lo:      rgba(206, 190, 255, .38);
+
+  --y2k-r:           30px;      /* 泡泡更圆 */
+  --y2k-r-sm:        18px;
+
+  /* 自己在发光，而不是被照亮（宪法 1.5 节） */
+  --y2k-glow:        0 0 60px rgba(150, 215, 250, .34);
+  --y2k-ink-shadow:  0 1px 3px rgba(4, 16, 34, .70);   /* 背景几乎全透，字要更能站住 */
+  /* 皂膜：贴着边往里晕开的一圈彩虹。
+   * 只有一条硬边的话像个描边的框；这层软的晕开才是「膜」。 */
+  --y2k-thickness:   inset 0 0 0 1px rgba(255, 255, 255, .16),
+                     inset 0 2px 0 rgba(255, 255, 255, .32),
+                     inset 0 0 30px -8px rgba(255, 190, 228, .38),
+                     inset 0 0 34px -10px rgba(158, 240, 255, .34),
+                     inset 0 30px 50px -30px rgba(255, 255, 255, .30);
+}
+
+/* 泡泡外面那圈光晕 —— 它自己在发光。
+ * 落影几乎去掉：影子代表重量，而泡泡不该有重量。这是它和玻璃在观感上分开的最后一步。 */
+.y2k-mat-bubble .y2k-window,
+.y2k-window.y2k-mat-bubble {
+  box-shadow: 0 10px 26px rgba(2, 10, 22, .16), var(--y2k-glow), var(--y2k-thickness);
+}
+
+/* ============================ 2 · 基座 ============================ */
+/* .y2k 是所有组件的祖先作用域。挂在弹窗根节点（ui.js 自动加），
+ * 也可以直接挂在 <body> 上做一个整页的 Y2K 页面。 */
+.y2k, .y2k *, .y2k *::before, .y2k *::after { box-sizing: border-box; }
+
+.y2k {
+  font-family: var(--y2k-font);
+  color: var(--y2k-ink);
+  font-size: 13px;
+  line-height: 1.55;
+  text-shadow: var(--y2k-ink-shadow);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------------------------------------------------------------------------
+ * .y2k-glass —— 材质本体，可以单独拿去用
+ *
+ * 三层叠出来：
+ *   background      玻璃自己的染色 + 顶部的镜面高光
+ *   backdrop-filter 透过去的东西：轻模糊 + 提饱和
+ *   ::before        折射边（用 mask 抠出一圈，才能跟着圆角走）
+ *
+ * ⚠️ backdrop-filter 很贵，**只给窗口这一层用**。
+ * 里面的按钮、卡片、行只用染色 + 边，不要再各自开一次模糊。
+ * ------------------------------------------------------------------------- */
+.y2k-glass {
+  position: relative;
+  /* color-mix 不支持的浏览器上这条算不出来，--y2k-album-wash 保持无效值，
+   * 上面的 var(..., transparent) 兜底 = 不染色。 */
+  --y2k-album-wash: color-mix(in srgb, var(--y2k-album) var(--y2k-album-mix), transparent);
+  background:
+    /* 跟着指针走的高光 —— liquid glass 里「活」的那一下。
+     * ui.js 只改 --y2k-mx / --y2k-my 两个数，画的事全在这里。
+     * 要克制：大了浓了就成一块跟着鼠标跑的油渍，压在曲目列表上很吵。
+     * 只留一小团，浓度默认 10%。 */
+    radial-gradient(var(--y2k-spec-r) var(--y2k-spec-r)
+                    at var(--y2k-mx, 22%) var(--y2k-my, -6%),
+                    rgba(226, 244, 255, var(--y2k-spec-a)), transparent 70%),
+    /* 左上角斜射进来的一道镜面高光 —— 玻璃「有厚度」的来源 */
+    radial-gradient(120% 78% at 22% -14%, rgba(255, 255, 255, .26), transparent 60%),
+    /* 内核发光（只有泡泡材质非透明） */
+    radial-gradient(72% 58% at 50% 44%, var(--y2k-core), transparent 74%),
+    /* 当前内容的主色，很淡的一层 */
+    linear-gradient(var(--y2k-album-wash, transparent), var(--y2k-album-wash, transparent)),
+    linear-gradient(168deg, var(--y2k-tint), rgba(176, 214, 244, .09)),
+    linear-gradient(var(--y2k-shade), var(--y2k-shade));   /* 熏色，垫在最底下 */
+  transition: --y2k-mx 260ms var(--y2k-ease), --y2k-my 260ms var(--y2k-ease);
+  box-shadow: var(--y2k-thickness);
+}
+
+/* 折射边 —— **liquid glass 的命根子**，所有玻璃件共用这一条。
+ *
+ * 两个做法上的讲究：
+ *   1. 用 padding + mask-composite 抠出一个「只有描边」的形状。
+ *      这样亮边能严格跟着 border-radius 走，而 border 做不到渐变。
+ *   2. 用 conic-gradient 而不是 linear —— 绕一圈亮度不均、在两个对角有「热点」，
+ *      那是光在镜片边缘聚起来的样子。linear 出来的是一条均匀的描边，像贴纸。 */
+.y2k-glass::before,
+.y2k-btn::before,
+.y2k-winbtn::before,
+.y2k-card::before,
+.y2k-tag::before,
+.y2k-tab.is-active::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: var(--y2k-rim-w);
+  background: conic-gradient(from 212deg at 50% 50%,
+    var(--y2k-rim-lo)    0deg,
+    var(--y2k-rim-hi)   34deg,
+    var(--y2k-rim-cool) 76deg,
+    var(--y2k-rim-lo)  140deg,
+    var(--y2k-rim-lo)  206deg,
+    var(--y2k-rim-warm) 258deg,
+    var(--y2k-rim-hi)  304deg,
+    var(--y2k-rim-lo)  360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+/* 小控件上那圈边要按比例细一点，不然一颗按钮全是边 */
+.y2k-btn, .y2k-winbtn, .y2k-card, .y2k-tag, .y2k-tab { --y2k-rim-w: 1px; }
+
+/* ============================ 2.8 · 算出来的边缘光 ============================ */
+/* 上面那圈 conic-gradient 是**兜底**：JS 没跑起来的时候才轮到它。
+ *
+ * 真正在用的是这一条：ui.js 用 canvas 按穹顶的法线算出高光贴图（Phong 镜面 +
+ * Schlick 菲涅尔），写进 --y2k-rim-map，元素上挂 data-y2k-lit。
+ *
+ * **为什么不手画一条描边高光**：折射和边缘光来自**同一个表面**。
+ * 手画的那条既不知道穹顶多厚，也不知道光从哪来 —— 换个圆角、换个厚度它就对不上了，
+ * 而人眼对「亮边和畸变不在一处」极其敏感，这正是网页玻璃「一眼假」的主要来源。
+ *
+ * 这一层**三档都有**（canvas 到处都能画），所以降级版不是「坏掉的完整版」。 */
+.y2k-glass[data-y2k-lit]::before {
+  padding: 0;
+  background: var(--y2k-rim-map) 0 0 / 100% 100% no-repeat;
+  -webkit-mask: none;
+          mask: none;
+  opacity: var(--y2k-rim-a, 1);
+  mix-blend-mode: screen;
+}
+
+/* ============================ 2.9 · 三档能力 ============================ */
+/* <html data-y2k-tier> 由 ui.js 写入。
+ *   refract  真折射 + 边缘光（只有 Chromium）
+ *   blur     只有 backdrop-filter：加重模糊补偿「不会弯」，边缘光照常画
+ *   flat     连 backdrop-filter 都没有：半透明底色 + 边缘光
+ * 判断标准：降级版单独看也应该是好的，不该一眼看出它是降级。 */
+[data-y2k-tier="blur"] {
+  /* 没有折射就没有「边缘弯、中心清」的对比，玻璃会显得薄得没东西。
+   * 补偿方式是**加厚模糊 + 多提一点饱和**（不是加白染色 —— 那会发乳）。 */
+  --y2k-blur:        blur(9px) saturate(1.9) brightness(1.03);
+  --y2k-rim-a:       1.15;
+}
+[data-y2k-tier="flat"] {
+  /* 透不过去的话，薄玻璃就只是一层灰纱，字全糊了。
+   * 这时候退回一块**实心的浅色板** —— 场景是亮的，所以往白里退，不是往黑里退。 */
+  --y2k-tint:        rgba(238, 247, 255, .90);
+  --y2k-tint-strong: rgba(244, 250, 255, .94);
+  --y2k-scrim:       rgba(20, 44, 72, .34);
+  --y2k-rim-a:       .85;
+}
+[data-y2k-tier="flat"] .y2k-window {
+  background: linear-gradient(178deg, rgba(247, 252, 255, .94), rgba(226, 240, 251, .95));
+}
+
+/* 颗粒 —— 宪法 统一器 6：一层 grain 盖住所有东西，是必需项不是滤镜。
+ * 玻璃上要比之前更淡，重了会像脏。 */
+.y2k-grain::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: var(--y2k-grain-a, 0);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/>\
+<feColorMatrix type='saturate' values='0'/></filter>\
+<rect width='120' height='120' filter='url(%23n)'/></svg>");
+  background-size: 120px 120px;
+}
+
+/* 圆点纹理 —— 参考图里的波点底 */
+.y2k-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, .16) 1px, transparent 1px);
+  background-size: 9px 9px;
+}
+
+/* 屏幕外但读屏器可读 */
+.y2k-sr {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ============================ 3 · 遮罩 ============================ */
+/* 只压一点点、**不模糊** —— 背后的场景要留给窗口的玻璃去折射。 */
+.y2k-scrim {
+  position: fixed; inset: 0;
+  z-index: var(--y2k-z);
+  display: grid; place-items: center;
+  padding: 4vmin;
+  background: radial-gradient(120% 90% at 50% 50%,
+    rgba(6, 16, 30, .18) 0%, var(--y2k-scrim) 100%);
+  animation: y2k-fade var(--y2k-base) var(--y2k-ease) both;
+}
+.y2k-scrim.is-closing { animation: y2k-fade var(--y2k-fast) var(--y2k-ease) reverse both; }
+
+@keyframes y2k-fade { from { opacity: 0 } to { opacity: 1 } }
+
+/* ============================ 4 · 窗口 ============================ */
+/* 全站每一个弹窗都是这一块玻璃：标题栏 + 内容 + （可选）页脚。 */
+.y2k-window {
+  position: relative;
+  display: flex; flex-direction: column;
+  width: min(var(--y2k-w, 720px), 100%);
+  max-height: min(var(--y2k-h, 640px), 100%);
+  border-radius: var(--y2k-r);
+  /* 全站唯一一处 backdrop-filter */
+  backdrop-filter: var(--y2k-blur);
+  -webkit-backdrop-filter: var(--y2k-blur);
+  box-shadow: var(--y2k-shadow-soft), var(--y2k-glow), var(--y2k-thickness);
+  overflow: hidden;                     /* 圆角要裁住标题栏和滚动区 */
+  animation: y2k-pop var(--y2k-slow) var(--y2k-ease-liquid) both;
+}
+/* ⚠️ 字色必须**在窗口这一层**再解析一次。
+ * .y2k（遮罩根）上写的 color: var(--y2k-ink) 是在那里就算成具体颜色的，
+ * 而 .y2k-ink-dark 挂在窗口上、比它更深一层 —— 子元素继承的是**算好的颜色**，
+ * 不会回头再读一次变量。所以只改令牌，字色一动不动（浅字压在亮玻璃上直接消失）。 */
+.y2k-window {
+  color: var(--y2k-ink);
+  text-shadow: var(--y2k-ink-shadow);
+}
+
+/* 折射边要盖在内容之上，所以 z-index 抬高一档 */
+.y2k-window::before { z-index: 3; }
+
+/* 默认窗口按内容收缩（小对话框这样才好看）。
+ * 多层导航的窗口（播放器：唱片架 ⇄ 专辑内页）要一个不跳的固定尺寸，用这个。 */
+.y2k-window--fixed { height: min(var(--y2k-h, 640px), 100%); }
+.y2k-window.is-closing { animation: y2k-pop var(--y2k-fast) var(--y2k-ease) reverse both; }
+
+/* 开合动效：从下方轻轻弹上来，带一点缩放。别做旋转和翻转，会显得廉价。 */
+@keyframes y2k-pop {
+  from { opacity: 0; transform: translateY(18px) scale(.955); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 标题栏 —— 千禧年的招牌，但换成玻璃：顶上一道高光，底下一条极细的分界。 */
+.y2k-titlebar {
+  position: relative;
+  flex: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 8px 0 14px;
+  height: 40px;
+  background:
+    radial-gradient(120% 300% at 26% -120%, rgba(255, 255, 255, .30), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .04));
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .14);
+  cursor: grab;                          /* 可拖（ui.js 接管） */
+  user-select: none;
+  touch-action: none;
+}
+.y2k-titlebar:active { cursor: grabbing; }
+.y2k-titlebar.is-static { cursor: default; }
+
+/* 标题栏左边那三条小横线：Y2K 窗口的抓手 */
+.y2k-titlebar__grip {
+  flex: none; width: 13px; height: 9px;
+  background: repeating-linear-gradient(180deg,
+    rgba(255, 255, 255, .75) 0 1px, transparent 1px 3px);
+  opacity: .8;
+}
+.y2k-titlebar__title {
+  flex: 1 1 auto; min-width: 0;
+  font-family: var(--y2k-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--y2k-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.y2k-titlebar__sub {
+  flex: none;
+  font-family: var(--y2k-mono);
+  font-size: 10px; letter-spacing: .1em;
+  color: var(--y2k-ink-soft);
+  white-space: nowrap;
+}
+.y2k-titlebar__btns { flex: none; display: flex; gap: 5px; }
+
+/* 窗口按钮（×）—— 一颗小玻璃珠 */
+.y2k-winbtn {
+  position: relative;
+  width: 25px; height: 25px;
+  display: grid; place-items: center;
+  padding: 0;
+  font-family: var(--y2k-mono); font-size: 12px; line-height: 1;
+  color: var(--y2k-ink);
+  text-shadow: var(--y2k-ink-shadow);
+  background:
+    radial-gradient(100% 100% at 30% 0%, rgba(255, 255, 255, .40), transparent 70%),
+    rgba(255, 255, 255, .10);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28),
+              inset 0 1px 0 rgba(255, 255, 255, .45);
+  cursor: pointer;
+  transition: background var(--y2k-fast), transform var(--y2k-fast);
+}
+.y2k-winbtn:hover  { background: rgba(255, 255, 255, .22); }
+.y2k-winbtn:active { transform: scale(.92); }
+.y2k-winbtn--close:hover {
+  background: rgba(255, 179, 208, .40);
+  box-shadow: inset 0 0 0 1px var(--y2k-blush), 0 0 14px rgba(255, 179, 208, .45);
+}
+
+/* 窗口主体。
+ * 内容区比 chrome（标题栏 / 页脚）稍微厚一点点 —— 那里要读字。
+ * iOS 也是这么分的：外面一圈更透，中间承载内容的那块更实。 */
+.y2k-window__body {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+  position: relative;
+  z-index: 1;
+  background: var(--y2k-plate);
+}
+
+/* 页脚：放主按钮、外链、状态说明 */
+.y2k-window__footer {
+  position: relative;
+  flex: none;
+  display: flex; align-items: center; gap: var(--y2k-gap);
+  padding: 11px var(--y2k-pad);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16);
+  z-index: 1;
+}
+.y2k-window__footer .y2k-spacer { flex: 1 1 auto; }
+
+/* ============================ 5 · 区块 ============================ */
+.y2k-section { padding: var(--y2k-pad); }
+.y2k-section--tight { padding: 10px var(--y2k-pad); }
+.y2k-section--flush { padding: 0; }
+
+/* 小标题：等宽大写 + 一条虚线，Y2K 分组标题的标准写法 */
+.y2k-legend {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 11px;
+  font-family: var(--y2k-mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--y2k-ink-soft);
+}
+.y2k-legend::after {
+  content: ""; flex: 1 1 auto; height: 1px;
+  background: repeating-linear-gradient(90deg,
+    var(--y2k-hair) 0 3px, transparent 3px 6px);
+}
+
+.y2k-divider {
+  height: 1px; border: 0; margin: 0;
+  background: repeating-linear-gradient(90deg,
+    var(--y2k-hair) 0 3px, transparent 3px 6px);
+}
+
+/* ============================ 6 · 滚动容器 ============================ */
+.y2k-scroll {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255, 255, 255, .38) transparent;
+  scrollbar-width: thin;
+}
+.y2k-scroll::-webkit-scrollbar { width: 11px; }
+.y2k-scroll::-webkit-scrollbar-track { background: transparent; }
+.y2k-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .26);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.y2k-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .48); background-clip: content-box; }
+
+/* 内容板：要读字的一大片（曲目列表、留言列表）比 chrome 厚一点点。
+ * 挂在滚动区外面那层，别挂在每一行上。 */
+
+/* ============================ 7 · 按钮 ============================ */
+.y2k-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px 15px;
+  font-family: var(--y2k-mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--y2k-ink);
+  text-shadow: var(--y2k-ink-shadow);
+  text-decoration: none;
+  background:
+    radial-gradient(120% 160% at 26% -40%, rgba(255, 255, 255, .34), transparent 64%),
+    rgba(255, 255, 255, .11);
+  border: 0;
+  border-radius: var(--y2k-r-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .26),
+              inset 0 1px 0 rgba(255, 255, 255, .42),
+              0 3px 10px rgba(4, 14, 28, .28);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--y2k-fast), box-shadow var(--y2k-fast),
+              background var(--y2k-fast);
+}
+.y2k-btn:hover { background: rgba(255, 255, 255, .20); }
+/* 按下去像按一块真的玻璃：稍微缩一点、影子收掉 */
+.y2k-btn:active {
+  transform: scale(.965);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .30),
+              inset 0 2px 6px rgba(4, 14, 28, .30);
+}
+.y2k-btn:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: 2px; }
+.y2k-btn:disabled, .y2k-btn.is-disabled {
+  color: var(--y2k-ink-faint);
+  background: rgba(255, 255, 255, .05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 主按钮：唯一带强调色的按钮，一个界面里最多一个 */
+.y2k-btn--primary {
+  color: #06243C;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .35);
+  background:
+    radial-gradient(120% 160% at 26% -40%, rgba(255, 255, 255, .70), transparent 64%),
+    rgba(154, 214, 255, .72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55),
+              inset 0 1px 0 rgba(255, 255, 255, .75),
+              0 4px 16px rgba(90, 175, 235, .40);
+}
+.y2k-btn--primary:hover { background: rgba(186, 230, 255, .88); }
+
+/* 次按钮：只有一圈细边，最轻 */
+.y2k-btn--ghost {
+  color: var(--y2k-ink-soft);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
+}
+.y2k-btn--ghost:hover { background: rgba(255, 255, 255, .10); color: var(--y2k-ink); }
+
+.y2k-btn--icon { padding: 0; width: 32px; height: 32px; font-size: 13px; letter-spacing: 0; }
+.y2k-btn--sm   { padding: 5px 11px; font-size: 10px; border-radius: 999px; }
+.y2k-btn--lg   { padding: 12px 24px; font-size: 12px; letter-spacing: .16em; }
+.y2k-btn--block{ display: flex; width: 100%; }
+
+/* ============================ 8 · 标签页 ============================ */
+.y2k-tabs {
+  display: flex; align-items: center; gap: 4px;
+  padding: 6px;
+  margin: 0 var(--y2k-pad);
+  background: rgba(8, 22, 38, .18);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+}
+.y2k-tab {
+  position: relative;
+  flex: 1 1 auto;
+  padding: 6px 14px;
+  font-family: var(--y2k-mono);
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--y2k-ink-soft);
+  text-shadow: var(--y2k-ink-shadow);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--y2k-fast), color var(--y2k-fast);
+}
+.y2k-tab:hover { color: var(--y2k-ink); }
+/* 选中的那颗是一块小玻璃，在槽里滑 */
+.y2k-tab.is-active {
+  color: var(--y2k-ink);
+  background:
+    radial-gradient(120% 200% at 30% -60%, rgba(255, 255, 255, .40), transparent 64%),
+    rgba(255, 255, 255, .16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .32),
+              inset 0 1px 0 rgba(255, 255, 255, .48),
+              0 2px 8px rgba(4, 14, 28, .25);
+}
+
+/* ============================ 9 · 列表行 ============================ */
+/* 播放器的曲目列表；以后许愿留言列表、简历的经历列表也用它。 */
+.y2k-list { display: flex; flex-direction: column; }
+
+.y2k-row {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  text-shadow: var(--y2k-ink-shadow);
+  background: transparent;
+  border: 0;
+  border-radius: var(--y2k-r-xs);
+  cursor: pointer;
+  transition: background var(--y2k-fast), padding-left var(--y2k-fast);
+}
+/* 分隔线用伪元素画，这样圆角的选中块不会被线切开 */
+.y2k-row::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 1px;
+  background: var(--y2k-hair);
+}
+.y2k-row:last-child::after { display: none; }
+
+.y2k-row:hover  { background: var(--y2k-tint-hover); padding-left: 16px; }
+.y2k-row:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: -2px; }
+
+/* 选中：一块淡蓝玻璃 + 左边一条强调色竖条 */
+.y2k-row.is-active {
+  background: var(--y2k-accent-pale);
+  box-shadow: inset 3px 0 0 var(--y2k-accent),
+              inset 0 0 0 1px rgba(255, 255, 255, .18);
+  padding-left: 16px;
+}
+.y2k-row.is-active .y2k-row__title { color: var(--y2k-accent-hi); font-weight: 700; }
+
+.y2k-row--static { cursor: default; }
+.y2k-row--static:hover { background: transparent; padding-left: 12px; }
+
+.y2k-row__index {
+  flex: none; width: 22px;
+  font-family: var(--y2k-mono); font-size: 11px;
+  color: var(--y2k-ink-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.y2k-row.is-active .y2k-row__index { color: var(--y2k-accent-hi); }
+
+/* 播放中：序号位置换成跳动的三根柱子 */
+.y2k-row__bars { flex: none; width: 22px; height: 12px; display: none; align-items: flex-end; gap: 2px; }
+.y2k-row.is-playing .y2k-row__bars  { display: flex; }
+.y2k-row.is-playing .y2k-row__index { display: none; }
+.y2k-row__bars i {
+  flex: 1 1 auto; border-radius: 1px;
+  background: var(--y2k-accent-hi);
+  box-shadow: 0 0 6px rgba(154, 214, 255, .8);
+  animation: y2k-bar 900ms ease-in-out infinite;
+}
+.y2k-row__bars i:nth-child(2) { animation-delay: 160ms; }
+.y2k-row__bars i:nth-child(3) { animation-delay: 320ms; }
+@keyframes y2k-bar { 0%, 100% { height: 25% } 50% { height: 100% } }
+
+.y2k-row__main  { flex: 1 1 auto; min-width: 0; display: block; }
+.y2k-row__title {
+  display: block;
+  font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.y2k-row__sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px; color: var(--y2k-ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.y2k-row__meta {
+  flex: none;
+  font-family: var(--y2k-mono); font-size: 11px;
+  color: var(--y2k-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.y2k-row__thumb {
+  flex: none; width: 34px; height: 34px;
+  object-fit: cover;
+  border-radius: var(--y2k-r-xs);
+  background: rgba(255, 255, 255, .10);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .28);
+}
+
+/* ============================ 10 · 网格卡片 ============================ */
+/* 播放器的唱片架；以后作品集网格也用它。--y2k-card-w 控制列宽。 */
+.y2k-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--y2k-card-w), 1fr));
+  gap: var(--y2k-gap);
+  align-items: stretch;                 /* 同一行的卡片一样高，标题几行都不影响 */
+}
+
+.y2k-card {
+  position: relative;
+  height: 100%;                         /* <button> 不会自己被 stretch 撑满 */
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 8px 8px 10px;
+  text-align: left;
+  color: inherit; font: inherit;
+  text-shadow: var(--y2k-ink-shadow);
+  background:
+    radial-gradient(120% 90% at 24% -16%, rgba(255, 255, 255, .26), transparent 62%),
+    rgba(255, 255, 255, .08);
+  border: 0;
+  border-radius: var(--y2k-r-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .20),
+              inset 0 1px 0 rgba(255, 255, 255, .34);
+  cursor: pointer;
+  transition: transform var(--y2k-base) var(--y2k-ease),
+              box-shadow var(--y2k-base) var(--y2k-ease),
+              background var(--y2k-fast);
+}
+/* hover：抬起来一点，边亮一圈。像把唱片从架子里抽出来一半。 */
+.y2k-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, .15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .42),
+              inset 0 1px 0 rgba(255, 255, 255, .60),
+              0 14px 30px rgba(2, 10, 22, .40),
+              var(--y2k-glow);
+}
+.y2k-card:active { transform: translateY(-1px); }
+.y2k-card:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: 2px; }
+.y2k-card.is-active {
+  background: var(--y2k-accent-pale);
+  box-shadow: inset 0 0 0 1px var(--y2k-accent), inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+
+/* 封面：正方形，一圈内描边让它像塑封在袋子里 */
+.y2k-card__art {
+  display: block;                       /* 是 <span>，不写死 aspect-ratio 不生效 */
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--y2k-r-xs);
+  overflow: hidden;
+  background: rgba(255, 255, 255, .08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .30);
+}
+.y2k-card__art img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* 封面上一道固定角度的白色斜光条 —— 宪法 1.5 节的「手绘高光条」，
+ * 不跟随光源，纯粹是「可爱」的来源。 */
+.y2k-card__art::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(118deg,
+    transparent 0 40%,
+    rgba(255, 255, 255, .20) 42%,
+    rgba(255, 255, 255, .05) 46%,
+    transparent 47% 100%);
+}
+
+.y2k-card__label {
+  display: block;
+  text-wrap: pretty;                    /* 别让专辑名最后一行只剩一个字 */
+  font-size: 12px; font-weight: 600; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.y2k-card__sub {
+  display: block;
+  font-family: var(--y2k-mono);
+  font-size: 10px; letter-spacing: .05em;
+  color: var(--y2k-ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.y2k-card__flag { position: absolute; left: 6px; top: 6px; z-index: 1; }
+
+/* ============================ 11 · 标签 / 徽章 ============================ */
+.y2k-tag {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px;
+  font-family: var(--y2k-mono);
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--y2k-ink);
+  text-shadow: var(--y2k-ink-shadow);
+  background: rgba(255, 255, 255, .13);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .26),
+              inset 0 1px 0 rgba(255, 255, 255, .38);
+  white-space: nowrap;
+}
+.y2k-tag--quiet  { color: var(--y2k-ink-soft); background: rgba(255, 255, 255, .07); }
+.y2k-tag--blush  { color: #FFE2EE; background: rgba(255, 179, 208, .26);
+                   box-shadow: inset 0 0 0 1px rgba(255, 179, 208, .60); }
+.y2k-tag--citron { color: #F2FBD3; background: rgba(230, 245, 163, .22);
+                   box-shadow: inset 0 0 0 1px rgba(230, 245, 163, .55); }
+
+/* 一个会呼吸的小圆点，配在标签里表示「正在……」 */
+.y2k-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: y2k-breathe 1.6s ease-in-out infinite;
+}
+@keyframes y2k-breathe { 0%, 100% { opacity: .35 } 50% { opacity: 1 } }
+
+/* ============================ 12 · 表单 ============================ */
+/* 播放器只用到滑块，输入框是给许愿页面准备的 —— 组件先做，别等到那时候再补。 */
+.y2k-field { display: flex; flex-direction: column; gap: 6px; }
+.y2k-field__label {
+  font-family: var(--y2k-mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--y2k-ink-soft);
+}
+.y2k-input, .y2k-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--y2k-font); font-size: 13px;
+  color: var(--y2k-ink);
+  text-shadow: var(--y2k-ink-shadow);
+  background: var(--y2k-tint-sunken);
+  border: 0;
+  border-radius: var(--y2k-r-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18),
+              inset 0 2px 6px rgba(4, 14, 28, .30);
+}
+.y2k-input::placeholder, .y2k-textarea::placeholder { color: var(--y2k-ink-faint); }
+.y2k-input:focus, .y2k-textarea:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--y2k-accent),
+              inset 0 2px 6px rgba(4, 14, 28, .30),
+              0 0 0 3px var(--y2k-accent-pale);
+}
+.y2k-textarea { resize: vertical; min-height: 84px; line-height: 1.6; }
+
+/* 滑块 —— 音量条。槽是凹的，滑块是一颗玻璃珠。 */
+.y2k-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+.y2k-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--y2k-tint-sunken);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18),
+              inset 0 1px 3px rgba(4, 14, 28, .35);
+}
+.y2k-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; margin-top: -5px;
+  background:
+    radial-gradient(100% 100% at 30% 10%, rgba(255, 255, 255, .95), transparent 70%),
+    rgba(154, 214, 255, .85);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .70),
+              0 2px 6px rgba(4, 14, 28, .40);
+}
+.y2k-slider::-moz-range-track {
+  height: 6px; background: rgba(8, 22, 38, .30); border-radius: 999px;
+}
+.y2k-slider::-moz-range-thumb {
+  width: 15px; height: 15px; border: 0; border-radius: 50%;
+  background: rgba(154, 214, 255, .9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7);
+}
+.y2k-slider:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: 3px; }
+
+/* ============================ 13 · 状态：空 / 载入 / 错误 ============================ */
+/* 兜底界面必须好看 —— 它是最坏情况下访客看到的东西（规格 · 兜底）。 */
+.y2k-state {
+  flex: 1 1 auto;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px;
+  padding: 30px var(--y2k-pad);
+  text-align: center;
+}
+.y2k-state__icon {
+  font-size: 26px; line-height: 1;
+  color: var(--y2k-ink-soft);
+}
+/* 状态标题是**一句话**，不是标签 —— 所以不走等宽大写那一套。
+ * 中文被拉开字距会很难看（「这 张 还 没 接 上」），只有纯拉丁的标签才适合。 */
+.y2k-state__title {
+  font-size: 14px; font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--y2k-ink);
+}
+/* 载入态的 LOADING 是纯拉丁标签，保留千禧年的等宽大写 */
+.y2k-state[data-kind="loading"] .y2k-state__title {
+  font-family: var(--y2k-mono);
+  font-size: 11px;
+  letter-spacing: .22em; text-transform: uppercase;
+  color: var(--y2k-ink-soft);
+}
+.y2k-state__text {
+  max-width: 34em;
+  font-size: 12px; line-height: 1.7;
+  color: var(--y2k-ink-soft);
+}
+.y2k-state__actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+.y2k-spinner {
+  width: 22px; height: 22px;
+  border: 2px dashed var(--y2k-accent);
+  border-radius: 50%;
+  animation: y2k-spin 2.6s linear infinite;
+}
+@keyframes y2k-spin { to { transform: rotate(360deg) } }
+
+/* 骨架块：等真实内容的时候占位，别让布局跳 */
+.y2k-skeleton {
+  background: linear-gradient(90deg,
+    rgba(255, 255, 255, .06) 0%, rgba(255, 255, 255, .18) 50%, rgba(255, 255, 255, .06) 100%);
+  background-size: 220% 100%;
+  border-radius: var(--y2k-r-xs);
+  animation: y2k-sheen 1.5s linear infinite;
+}
+@keyframes y2k-sheen { from { background-position: 120% 0 } to { background-position: -120% 0 } }
+
+/* ============================ 14 · 杂项 ============================ */
+.y2k-spacer { flex: 1 1 auto; }
+.y2k-mono   { font-family: var(--y2k-mono); }
+.y2k-quiet  { color: var(--y2k-ink-soft); }
+.y2k-note   { font-size: 11.5px; line-height: 1.6; color: var(--y2k-ink-soft); }
+
+.y2k-ext::after { content: " ↗"; font-size: .9em; }
+
+/* 嵌入平台播放器的槽位：凹下去一块，让 iframe 看起来是「装进这块玻璃里」的 */
+.y2k-embed {
+  position: relative;
+  background: var(--y2k-tint-sunken);
+  border-radius: var(--y2k-r-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .20),
+              inset 0 2px 8px rgba(4, 14, 28, .35);
+  overflow: hidden;
+}
+.y2k-embed > iframe { display: block; width: 100%; border: 0; }
+
+/* ============================ 14.5 · 收起的窗口 ============================ */
+/* 「关掉」不等于「销毁」。播放器关掉之后音乐要继续放（唱片继续转），
+ * 所以窗口只是收起来 —— iframe 留在 DOM 里，不能拆，也不能挪
+ * （挪动 iframe 会让它重新加载，歌就断了）。
+ *
+ * 用 visibility 而不是 display:none / hidden：display:none 会把 iframe 从渲染树里摘掉，
+ * 部分浏览器会顺手停掉里面的音频。visibility:hidden 只是不画，音频照放。 */
+.y2k-scrim.is-parked,
+.y2k.is-parked {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+/* ============================ 14.6 · 连 JS 都没跑 ============================ */
+/* 分档在第 2.9 节，由 ui.js 写 data-y2k-tier。
+ * 但如果 JS 整个没加载（或者被拦了），那个属性也不会有 —— 这条 @supports 是最后一层网。 */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  :root {
+    --y2k-tint:        rgba(238, 247, 255, .90);
+    --y2k-tint-strong: rgba(244, 250, 255, .94);
+    --y2k-scrim:       rgba(20, 44, 72, .34);
+  }
+  .y2k-window { background: linear-gradient(178deg, rgba(247, 252, 255, .94), rgba(226, 240, 251, .95)); }
+}
+
+/* ============================ 14.65 · 提示条 ============================ */
+/* 切玻璃预设时右下角冒一下。临时的，预设定下来之后连同 ui.js 第 2.6 节一起删。 */
+.y2k-toast {
+  position: fixed; right: 16px; bottom: 16px; z-index: 99999;
+  padding: 9px 14px; border-radius: 999px;
+  font: 11px/1 var(--y2k-mono); letter-spacing: .1em;
+  color: #10314f; background: rgba(255, 255, 255, .88);
+  box-shadow: 0 8px 24px rgba(6, 22, 40, .28), inset 0 0 0 1px rgba(255, 255, 255, .9);
+  opacity: 0; transform: translateY(8px); pointer-events: none;
+  transition: opacity var(--y2k-base) var(--y2k-ease), transform var(--y2k-base) var(--y2k-ease);
+}
+.y2k-toast.is-on { opacity: 1; transform: none; }
+
+/* ============================ 14.7 · 相册 ============================ */
+/* 只有 共用/相册.js 用它。两层：时间流（主页）→ 单张。
+ *
+ * ⚠️ 两条不能破的规矩，改这一节之前先读：
+ *
+ *   ① **照片上面什么都不许压。** 没有扫描线、没有栅格、没有盖片反光、没有模糊。
+ *      这些是 Iris 用相机拍的照片，「清晰」本身就是内容。
+ *      唯一的例外是右下角那枚橙色日期戳 —— 它本来就是烧进底片里的。
+ *
+ *   ② **单张视图里照片周围那圈空地绝对不能给背景色。**
+ *      窗口是固定尺寸的（不然翻一张跳一下很怪），照片 contain 居中，
+ *      竖片两边一定会空出来。空出来的地方露的是**玻璃和沙滩**，
+ *      一给底色就变成了「照片被框在一个黑盒子里」—— 那正是上一版被否掉的东西。
+ */
+
+/* ---- 主页：一个地方 = 一件东西 ----
+ *
+ * ⚠️ 不要再做成「所有照片摊平成一面墙」。那是 Apple 相册，
+ * 它把「一次拍摄 = 一个地方 = 一卷」这个结构碾平了 ——
+ * 而照片是按**去过哪儿**记住的，不是按日期记住的。
+ * 主页上应该是 8 件东西，不是 94 张照片。
+ *
+ * 三种做法并存，footer 上当场切，选定后删掉没用的两套。 */
+.y2k-cam__feed {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: 10px 14px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .38) transparent;
+}
+
+/* ============ ① 胶片：一卷 35mm ============
+ * 齿孔、片基、橙色边字。这是三个里最贴这个世界的一个 ——
+ * 点的是一台相机，那主页上摊着的就该是从它里面取出来的东西。 */
+.y2k-cam__rolls-v { display: grid; gap: 20px; }
+
+.y2k-film {
+  position: relative;
+  /* 片基：不是纯黑，是偏暖的深褐 —— 纯黑会变成一条洞 */
+  background: linear-gradient(#1C1613, #14100E);
+  border-radius: 2px;
+  padding: 0 0 2px;
+  box-shadow: 0 8px 22px rgba(6, 18, 34, .34), inset 0 0 0 1px rgba(255, 240, 220, .09);
+  transition: transform var(--y2k-base) var(--y2k-ease),
+              box-shadow var(--y2k-base) var(--y2k-ease);
+}
+.y2k-film:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(6, 18, 34, .40), inset 0 0 0 1px rgba(255, 240, 220, .14);
+}
+
+/* 齿孔。真 35mm 的孔是横着的圆角矩形，一格照片配八个孔。
+ * 用 repeating-linear-gradient 画，不用 320 个 DOM 节点 —— 主页上八卷就是八条。 */
+.y2k-film__holes {
+  height: 13px;
+  background-image: repeating-linear-gradient(90deg,
+    #D9D2C6 0 10px, transparent 10px 22px);
+  background-position: 6px 0;
+  background-size: auto 7px;
+  background-repeat: repeat-x;
+  background-origin: content-box;
+  padding: 3px 0;
+}
+
+.y2k-film__frames {
+  display: flex; gap: 3px;
+  overflow-x: auto; overflow-y: hidden;
+  padding: 0 3px;
+  scrollbar-width: none;
+}
+.y2k-film__frames::-webkit-scrollbar { display: none; }
+
+.y2k-film__frame {
+  position: relative; flex: none;
+  height: 122px;
+  padding: 0; border: 0; border-radius: 0;
+  background: #0C0A09;
+  overflow: hidden; cursor: pointer;
+}
+.y2k-film__frame img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 420ms var(--y2k-ease), filter var(--y2k-fast);
+}
+/* hover 只把这一格提亮一点点。不要抬起、不要加影 ——
+ * 一条胶片上有一格跳出平面，整条就散了。 */
+.y2k-film__frame img { filter: brightness(.92); }
+.y2k-film__frame:hover img { filter: brightness(1.06); transform: scale(1.05); }
+.y2k-film__frame:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: -2px; }
+.y2k-film__frame .y2k-cam__playmark { width: 26px; height: 26px; font-size: 10px; }
+
+/* 边字：真胶片就是这么印的 —— 片名、日期、可拍张数，橙色，压在片基上。
+ * 这一条比任何标题都更能说明「这是一卷」。 */
+.y2k-film__edge {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 3px 10px 5px;
+  font: 10px/1 var(--y2k-mono); letter-spacing: .18em;
+  color: #FF9A2E;
+  text-shadow: 0 0 8px rgba(255, 138, 20, .5);
+}
+.y2k-film__edge b    { font-weight: 700; letter-spacing: .22em; }
+.y2k-film__edge span { opacity: .62; letter-spacing: .14em; }
+
+/* ============ ② 叠放：一叠照片摞在那儿 ============
+ * 野餐垫上本来就该散着几张照片，所以这一路和场景是同源的。
+ *
+ * ⚠️ **不要白边。** 第一版给每张加了冲印那种白框，被否了 ——
+ * 白框把「一叠照片」变成了「一叠明信片」，八个地方八块白，
+ * 整个主页会被白色噪点占满，照片本身反而退到第二位。
+ *
+ * ⚠️ **排布和叠法是两件事，别再焊在一起。**
+ * 有一版把「一行一个」直接写进了叠法的样式里，结果想换回网格就只能连叠法一起换，
+ * 而这两个其实可以随便组合：
+ *
+ *      排布  .is-grid  一格一个地方，撒在网格里     ← 出厂
+ *            .is-rows  一行一个地方，往下扫一列
+ *      叠法  --bare    没有边，只有落影，微微歪着   ← 出厂
+ *            --depth   往右递进，右边那些是之后的照片
+ *
+ * 位移和旋转全在 CSS 里算，JS 只往每张卡上写 --i（从上往下第几张，0 是最上面）、
+ * --nmax（最多露几张）、--tilt（歪多少度）。换排布或叠法只是换类名。
+ *
+ * --tilt 是按「这一卷排第几」算出来的定值，不是 random ——
+ * 随机的话每次重画都换一个样子，看着像坏了而不像手摆的。 */
+
+/* ---- 排布 A：网格 ----
+ * 一排 2~3 个就够（Iris 定，08-27）。四个太多、每叠太小 ——
+ * 一共也就八九个地方，摊成四列反而像个缩略图墙。列少了每叠就能大一圈。 */
+.y2k-cam__piles.is-grid {
+  display: grid; gap: 38px 30px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  padding: 16px 10px 18px;
+}
+.y2k-cam__piles.is-grid .y2k-pile {
+  grid-template-columns: none;
+  justify-items: center; text-align: center;
+  gap: 14px; padding: 10px 0 0;
+}
+
+/* ---- 排布 B：一行一个 ----
+ * 之后会删掉很多照片；一个地方只剩三五张时，网格里那格会显空，
+ * 而行永远是满的 —— 行的宽度由版面决定，不由照片数量决定。 */
+.y2k-cam__piles.is-rows {
+  display: grid; gap: 10px;
+  padding: 6px 4px 12px;
+}
+.y2k-cam__piles.is-rows .y2k-pile {
+  grid-template-columns: auto 1fr; align-items: center;
+  /* 间距按**散开之后**的宽度留，不是按静止时留 ——
+   * 留窄了鼠标一放上去，最后一张就压到地名上。 */
+  gap: 58px; padding: 10px 14px; text-align: left;
+}
+.y2k-cam__piles.is-rows .y2k-pile--depth { gap: 30px; }
+.y2k-cam__piles.is-rows .y2k-pile__label b { font-size: 15px; }
+
+/* ---- 两种排布共用的部件 ---- */
+.y2k-pile {
+  display: grid; align-items: center;
+  border: 0; border-radius: 12px; background: transparent;
+  font: inherit; color: inherit; cursor: pointer;
+  transition: background var(--y2k-fast);
+}
+.y2k-pile:hover { background: var(--y2k-tint-hover); }
+.y2k-pile:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: -2px; }
+
+.y2k-pile__deck { position: relative; width: 246px; height: 178px; }
+.y2k-pile__card {
+  position: absolute; inset: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 5px 16px rgba(6, 18, 34, .32);
+  transition: transform var(--y2k-slow) var(--y2k-ease-liquid),
+              filter var(--y2k-slow) var(--y2k-ease);
+  /* 裸叠：没有任何边框，只有落影。 */
+  transform: rotate(var(--tilt, 0deg))
+             translate(calc(var(--i, 0) * 5px), calc(var(--i, 0) * -4px));
+}
+.y2k-pile__card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.y2k-pile__card.is-dead img { filter: grayscale(1) brightness(.55); }
+/* 摸上去整叠散开一点，像被拨了一下 */
+.y2k-pile--bare:hover .y2k-pile__card {
+  transform: rotate(calc(var(--tilt, 0deg) * 2.1))
+             translate(calc(var(--i, 0) * 13px), calc(var(--i, 0) * -9px));
+}
+
+/* ---- 叠法：景深，往右递进 ----
+ * 最上面那张在最左边，后面的照片一张张往右缩下去、暗下去、虚下去。
+ * **右边那些就是之后的照片** —— 这一叠自己就说明了「点进去还要往右翻」。
+ *
+ * transform-origin 必须是 left center：缩放要贴着左边缩，
+ * 默认的 center 会让每张同时往左右两边收，右边那串就不成一条线了。 */
+.y2k-pile--depth .y2k-pile__deck {
+  /* 宽度按**最多能露几张**算，不按这一本实际有几张 ——
+   * 按实际算的话，只剩两三张的地方那一行地名会往左缩进去，几行文字左缘参差不齐。 */
+  width: calc(246px + (var(--nmax, 5) - 1) * var(--pile-step, 54px));
+}
+.y2k-pile--depth .y2k-pile__card {
+  width: 246px; height: 100%; inset: 0 auto 0 0;
+  transform-origin: left center;
+  transform: translateX(calc(var(--i, 0) * 40px)) scale(calc(1 - var(--i, 0) * 0.075));
+  /* 压暗和虚化都要**很克制**：右边那几条本来就只露 40px 宽，
+   * 再压重一点就读成阴影而不是照片了 —— 而「那是之后的照片」正是这一版的全部意思。 */
+  filter: brightness(calc(1 - var(--i, 0) * 0.07)) blur(calc(var(--i, 0) * 0.45px));
+}
+.y2k-pile--depth:hover .y2k-pile__card {
+  transform: translateX(calc(var(--i, 0) * 54px)) scale(calc(1 - var(--i, 0) * 0.05));
+  filter: brightness(calc(1 - var(--i, 0) * 0.03)) blur(0);
+}
+/* 网格里一格放不下五张往右铺，收窄一点、少露一张（张数由 相册.js 给） */
+.is-grid .y2k-pile--depth {
+  --pile-step: 44px;
+}
+.is-grid .y2k-pile--depth .y2k-pile__card {
+  transform: translateX(calc(var(--i, 0) * 32px)) scale(calc(1 - var(--i, 0) * 0.08));
+}
+.is-grid .y2k-pile--depth:hover .y2k-pile__card {
+  transform: translateX(calc(var(--i, 0) * 44px)) scale(calc(1 - var(--i, 0) * 0.05));
+}
+
+.y2k-pile__label { align-self: center; }
+.y2k-pile__label b {
+  display: block; font-size: 15px; font-weight: 600; letter-spacing: .02em;
+  color: var(--y2k-ink);
+}
+.y2k-pile__label span {
+  font: 10.5px/1.7 var(--y2k-mono); letter-spacing: .14em; color: var(--y2k-ink-faint);
+}
+
+/* ============ ③ 封面：一个地方一张 ============
+ * 最安静的一个。
+ * ⚠️ 这里的卡片**统一 3:2**，不跟着照片自己的比例走 ——
+ * 试过按原比例，格子高度参差，网格里就留出一堆填不满的洞，看着像坏了而不像设计。
+ * 「封面」这条路线的价值就是齐整；要参差去看「胶片」那条。 */
+.y2k-cam__covers {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.y2k-cover {
+  position: relative;
+  padding: 0; border: 0; border-radius: 4px;
+  background: var(--y2k-tint-sunken);
+  overflow: hidden; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(6, 18, 34, .24);
+}
+.y2k-cover img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 520ms var(--y2k-ease);
+}
+.y2k-cover:hover img { transform: scale(1.04); }
+.y2k-cover__label {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 22px 12px 10px; text-align: left;
+  background: linear-gradient(transparent, rgba(6, 16, 28, .72));
+  color: #fff;
+}
+.y2k-cover__label b    { display: block; font-size: 14px; font-weight: 600; letter-spacing: .03em; }
+.y2k-cover__label span { font: 10px/1.5 var(--y2k-mono); letter-spacing: .12em; opacity: .78; }
+.y2k-cover:focus-visible { outline: 2px solid var(--y2k-accent); outline-offset: 2px; }
+
+/* 整理模式：每格右上角一个 × */
+.y2k-cam__x {
+  position: absolute; top: 4px; right: 4px;
+  width: 20px; height: 20px; padding: 0;
+  border: 0; border-radius: 50%;
+  font: 700 12px/1 var(--y2k-font);
+  color: #fff; background: rgba(12, 24, 38, .6);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5);
+  cursor: pointer; opacity: 0; z-index: 3;
+  transition: opacity var(--y2k-fast), background var(--y2k-fast);
+}
+.y2k-film__frame:hover .y2k-cam__x,
+.y2k-film__frame.is-dead .y2k-cam__x { opacity: 1; }
+.y2k-cam__x:hover { background: rgba(190, 30, 50, .9); }
+.y2k-film__frame.is-dead img { filter: grayscale(1) brightness(.45); }
+.y2k-film__frame.is-dead::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(-45deg,
+    rgba(210, 40, 60, .38) 0 8px, rgba(210, 40, 60, .12) 8px 16px);
+}
+
+/* ============================ 14.76 · 设置面板 ============================ */
+/* 所有「几选一」的唯一入口（Shift + U）。上线之后 Iris 还要在真场景里慢慢调，
+ * 分散在各处的快捷键和页脚按钮她记不住，也不该记。定稿之后整节删掉。 */
+.y2k-set { display: grid; gap: 4px; padding: 6px 4px 10px; }
+.y2k-set__row {
+  display: grid; grid-template-columns: 76px 1fr; align-items: center;
+  gap: 12px; padding: 8px 10px; border-radius: 10px;
+}
+.y2k-set__row:hover { background: var(--y2k-tint-hover); }
+.y2k-set__tag {
+  font: 11.5px/1 var(--y2k-mono); letter-spacing: .1em; color: var(--y2k-ink-soft);
+}
+.y2k-set .y2k-seg { flex-wrap: wrap; }
+.y2k-set .y2k-note { padding: 2px 10px 0; }
+
+/* 分段控件 —— 主页样式 / 翻页动画的临时选择器 */
+.y2k-seg {
+  display: inline-flex; padding: 2px; border-radius: 999px;
+  background: var(--y2k-tint-sunken);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2);
+}
+.y2k-seg__b {
+  padding: 5px 11px; border: 0; border-radius: 999px;
+  font: 10.5px/1 var(--y2k-mono); letter-spacing: .1em;
+  color: var(--y2k-ink-soft); background: transparent; cursor: pointer;
+  transition: color var(--y2k-fast), background var(--y2k-fast);
+}
+.y2k-seg__b:hover { color: var(--y2k-ink); }
+.y2k-seg__b.is-on {
+  color: var(--y2k-ink); font-weight: 700;
+  background: var(--y2k-accent-pale);
+  box-shadow: inset 0 0 0 1px var(--y2k-accent);
+}
+/* 控件前面那个小标签，不然一排光秃秃的词看不出是干什么的 */
+.y2k-seg__tag {
+  font: 9.5px/1 var(--y2k-mono); letter-spacing: .18em;
+  color: var(--y2k-ink-faint); align-self: center; margin-right: 7px;
+}
+.y2k-seg__wrap { display: inline-flex; align-items: center; }
+
+/* ---- 单张 ---- */
+/* ⚠️ 列要显式写 minmax(0, 1fr)。
+ * 不写的话隐式列是 auto = 按内容撑 —— 而舞台里现在全是绝对定位的跨页，
+ * 内在宽度是 0，整列会缩成说明文字那么窄（照片直接不见）。 */
+.y2k-cam {
+  flex: 1 1 auto; min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+/* 照片的位子。**没有背景、没有边框** —— 见上面规矩②。 */
+.y2k-cam__stage { position: relative; min-height: 0; cursor: zoom-in; }
+/* perspective 只在翻书那一档给：常开的话舞台一直是个 3D 渲染上下文，
+ * 里面的图会被无谓地提成独立合成层。
+ * 透视原点压在中轴上 —— 书脊在那儿，人的视线也该对着那儿。 */
+.y2k-cam__stage[data-turn="book"] { perspective: 1800px; perspective-origin: 50% 50%; }
+
+/* ⚠️ **两张「纸」**：舞台里有两个 .y2k-sheet，旧的那张不马上撤、新的压在上面。
+ * 一张纸上放一张照片（单张模式 / 书里的横图），或者并排两张竖图（书的跨页）。
+ * 只有一层的时候「叠化」中间必然穿帮 —— 旧的一撤、新的还没不透明，
+ * 那一瞬间露出的是玻璃和沙滩，看着是「闪一下」而不是「化过去」。 */
+.y2k-sheet {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+}
+.y2k-sheet.is-in  { opacity: 1; z-index: 2; }
+.y2k-sheet.is-out { opacity: 0; z-index: 1; }
+
+/* 一张照片。尺寸是 相册.js 按 w/h 算好写死在这个 figure 上的 ——
+ * 不用 CSS 百分比：图的 max-height 要拿容器高度算、容器高度又要等图量出来，
+ * 循环依赖，Chrome 会直接放弃，一张竖图就把舞台顶穿了。 */
+.y2k-figure {
+  position: absolute;                /* 坐标和尺寸都由 相册.js 算好写死 */
+  margin: 0;
+  border-radius: 3px;
+  cursor: zoom-in;
+  /* 只有落影，而且全在照片**外面**。照片上面一层都不许加。 */
+  box-shadow: 0 10px 30px rgba(6, 22, 40, .30), 0 0 0 1px rgba(255, 255, 255, .55);
+}
+.y2k-figure img { width: 100%; height: 100%; display: block; border-radius: 3px; }
+
+/* 视频层。跟纸共用同一套居中规则，所以横竖片在同一个位置上。 */
+.y2k-cam__video {
+  position: absolute; inset: 0; margin: auto;
+  width: auto; height: auto;
+  max-width: 100%; max-height: 100%;
+  display: none;
+  border-radius: 3px; background: #000;
+  box-shadow: 0 10px 30px rgba(6, 22, 40, .30), 0 0 0 1px rgba(255, 255, 255, .55);
+}
+.y2k-cam__stage.is-video .y2k-cam__video { display: block; }
+.y2k-cam__stage.is-video .y2k-sheet { display: none; }
+.y2k-cam__stage.is-video { cursor: default; }
+
+/* 幻灯机换片那一下的白。平时完全透明，只有 flash 那一档用得上。 */
+/* ============================ 14.75 · 翻开之后：脱掉窗口 ============================
+ * 玻璃窗口在主页上是对的 —— 那是「一块放在沙滩上的东西」。
+ * 但翻开之后再套一个框，就变成「在一个软件里看照片」了。
+ * 所以进了相册就把标题栏、页脚底色、玻璃、落影、折射边全脱掉，
+ * 剩下的只是**照片书浮在沙滩上**。
+ *
+ * 代价是没了框就没了「这里可以操作」的提示，所以那排按钮改成
+ * **默认隐身、鼠标一动才浮出来**（跟全屏那条 bar 一个逻辑）。 */
+.y2k-window.is-bare {
+  background: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  overflow: visible;
+}
+.y2k-window.is-bare::before,                /* 折射边 */
+.y2k-window.is-bare::after,                 /* 颗粒 */
+.y2k-window.is-bare > .y2k-titlebar { display: none; }
+.y2k-window.is-bare .y2k-window__body { background: none; }
+/* 说明文字直接压在沙滩上，得给一点点影子才站得住 */
+.y2k-window.is-bare .y2k-cam__meta { text-shadow: 0 1px 6px rgba(255, 255, 255, .55); }
+
+.y2k-window.is-bare .y2k-window__footer {
+  background: none;
+  box-shadow: none;
+  justify-content: center;
+  gap: 10px;
+  transition: opacity var(--y2k-base) var(--y2k-ease);
+}
+.y2k-window.is-bare.is-idle .y2k-window__footer { opacity: 0; pointer-events: none; }
+/* 脱了窗口之后按钮直接压在沙滩上，得比平时实一点才看得见 */
+.y2k-window.is-bare .y2k-btn {
+  background: rgba(255, 255, 255, .34);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .55), 0 2px 8px rgba(6, 22, 40, .16);
+}
+.y2k-window.is-bare .y2k-btn:disabled { opacity: .3; }
+.y2k-window.is-bare .y2k-seg { background: rgba(255, 255, 255, .3); }
+
+/* 到头了还在按：很轻地顶一下，告诉人「没有下一页了」。
+ * 不做的话按下去毫无反应，人会以为是卡住了。 */
+.y2k-cam__stage.is-bump-f { animation: y2k-bump-f 220ms var(--y2k-ease); }
+.y2k-cam__stage.is-bump-b { animation: y2k-bump-b 220ms var(--y2k-ease); }
+@keyframes y2k-bump-f { 50% { transform: translateX(-10px) } }
+@keyframes y2k-bump-b { 50% { transform: translateX(10px) } }
+
+/* ======================== 跨页 · 翻书 ========================
+ *
+ * 一个跨页画成一块**和舞台一样大**的画布（.y2k-spread），图都是绝对定位的。
+ * 画成整块的好处是可以按中轴一刀切成左右两页 —— 翻书就靠这个。 */
+.y2k-spread { position: absolute; inset: 0; }
+/* 半页：自己是一页大，里面装着完整的跨页、往左推半个身位。
+ * 所以一张横跨装订线的通版会被切成对得上的两半，真书里也是这么切的。 */
+.y2k-half { position: relative; overflow: hidden; flex: none; }
+.y2k-half__in { position: absolute; top: 0; left: 0; }
+
+/* ⚠️ 竖图跨页**不留缝、不画装订线**（Iris 08-27）。
+ * 理由很直接：横图那种通版本来就是从中间无缝穿过去的，
+ * 竖图这边要是留一条缝、再画一道线，两种跨页就长得不像同一本书了。
+ * 两张竖图直接对齐中轴贴在一起，接缝自己就是装订线。 */
+
+/* ---- 翻书 ----
+ * ⚠️ **装订线是中轴，不是窗口的左边缘。**（之前做错过一次）
+ * 翻的那一页是**右半页**，绕它自己的左边缘 —— 也就是中轴 —— 转 180°。
+ *   正面 = 当前跨页的右半；背面 = 下一跨页的左半（转过去正好落在左页上）。
+ * 底下垫着一块「拼接页」：左 = 当前的左半（一直不动），右 = 下一页的右半
+ * （随着这一页掀起来慢慢露出来）。 */
+.y2k-fliplayer { position: absolute; inset: 0; z-index: 5; }
+.y2k-flipbase  { position: absolute; inset: 0; display: flex; }
+
+.y2k-flip {
+  position: absolute; top: 0; left: 50%;
+  transform-style: preserve-3d;
+  transform-origin: left center;          /* ← 中轴 = 书脊 */
+  animation: y2k-flip-f 760ms linear backwards;
+}
+.y2k-flip[data-dir="b"] { animation-name: y2k-flip-b; }
+.y2k-flip__face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  animation: y2k-flip-lit-front 760ms linear backwards;
+}
+/* 背面要先转过去 180°，转到最后它才是正对着人的那一面 */
+.y2k-flip__face.is-back { transform: rotateY(180deg); animation-name: y2k-flip-lit-back; }
+
+/* 翻起来的那一页在底下投的影：0→90° 落在右页上、90→180° 落在左页上。
+ * 有了它才有「一张纸浮在另一张纸上面」的层次；没有它就只是一张图在转。 */
+.y2k-flipshade {
+  position: absolute; top: 0; bottom: 0; width: 50%;
+  pointer-events: none; opacity: 0;
+  animation: 760ms linear backwards;
+}
+.y2k-flipshade.is-right {
+  left: 50%;
+  background: linear-gradient(90deg, rgba(6,16,30,.5), rgba(6,16,30,0) 62%);
+  animation-name: y2k-flip-shade-r;
+}
+.y2k-flipshade.is-left {
+  left: 0;
+  background: linear-gradient(270deg, rgba(6,16,30,.42), rgba(6,16,30,0) 62%);
+  animation-name: y2k-flip-shade-l;
+}
+.y2k-flip[data-dir="b"] ~ .y2k-flipbase .y2k-flipshade { animation-direction: reverse; }
+
+/* ⚠️ 角度的时间曲线是**算出来的**，不是随手挑的贝塞尔。
+ *
+ * 一张纸转 θ 度时，它在屏幕上的投影宽度 ∝ |cos θ|。用线性或者普通 ease 转的话，
+ * cos 在 0° 和 180° 附近几乎不变、在 90° 附近变得最快 ——
+ * 看上去就是「先半天不动，中间猛地一冲，最后又卡住」，
+ * 而「新的一页」正是在那一冲里突然出现的（Iris 说的「进来太晚太突兀」）。
+ *
+ * 所以先让 cos θ 匀速：θ(t) = acos(1 − 2t)，这样每一毫秒露出来的新画面一样多。
+ * 但**纯匀速又太机械**（Iris 试完的第二轮意见），所以在 t 上加回 62% 的 smoothstep：
+ *
+ *     ease(t) = smoothstep(t) × 0.62 + t × 0.38
+ *     θ(t)    = acos(1 − 2·ease(t))
+ *
+ * 起手轻轻一挥、中段最快、落定收住 —— 但因为底子是 acos，新画面的露出速度
+ * 全程仍然是接近匀的，不会回到「一冲」。W=0.62 就是这两件事之间的那个位置：
+ * 0 = 完全匀速（太机械），1 = 纯 smoothstep（就是被否掉的那一版）。
+ * 下面这些数是这么算出来的，**别手改单个关键帧** —— 要改就改 W 整条重算。 */
+@keyframes y2k-flip-f {
+  0%   { transform: rotateY(-0deg) }
+  6%   { transform: rotateY(-19.7deg) }
+  12%  { transform: rotateY(-30.7deg) }
+  18%  { transform: rotateY(-40.8deg) }
+  25%  { transform: rotateY(-52deg) }
+  32%  { transform: rotateY(-62.8deg) }
+  40%  { transform: rotateY(-75deg) }
+  50%  { transform: rotateY(-90deg) }
+  60%  { transform: rotateY(-105deg) }
+  68%  { transform: rotateY(-117.2deg) }
+  75%  { transform: rotateY(-128deg) }
+  82%  { transform: rotateY(-139.2deg) }
+  88%  { transform: rotateY(-149.3deg) }
+  94%  { transform: rotateY(-160.3deg) }
+  100% { transform: rotateY(-180deg) }
+}
+@keyframes y2k-flip-b {
+  0%   { transform: rotateY(-180deg) }
+  6%   { transform: rotateY(-160.3deg) }
+  12%  { transform: rotateY(-149.3deg) }
+  18%  { transform: rotateY(-139.2deg) }
+  25%  { transform: rotateY(-128deg) }
+  32%  { transform: rotateY(-117.2deg) }
+  40%  { transform: rotateY(-105deg) }
+  50%  { transform: rotateY(-90deg) }
+  60%  { transform: rotateY(-75deg) }
+  68%  { transform: rotateY(-62.8deg) }
+  75%  { transform: rotateY(-52deg) }
+  82%  { transform: rotateY(-40.8deg) }
+  88%  { transform: rotateY(-30.7deg) }
+  94%  { transform: rotateY(-19.7deg) }
+  100% { transform: rotateY(-0deg) }
+}
+/* 打光分两面给，不要给整张纸：正面转开时越来越背光，背面转过来时越来越迎光。
+ * 给整张纸的话，两面同时变暗又同时变亮，那是「一张图在闪」不是「一张纸在翻」。 */
+@keyframes y2k-flip-lit-front {
+  0%   { filter: brightness(1) }
+  50%  { filter: brightness(.52) }
+  100% { filter: brightness(.52) }
+}
+@keyframes y2k-flip-lit-back {
+  0%   { filter: brightness(.52) }
+  50%  { filter: brightness(.52) }
+  100% { filter: brightness(1) }
+}
+@keyframes y2k-flip-shade-r {
+  0%   { opacity: .85 }
+  50%  { opacity: 0 }
+  100% { opacity: 0 }
+}
+@keyframes y2k-flip-shade-l {
+  0%   { opacity: 0 }
+  50%  { opacity: 0 }
+  100% { opacity: .8 }
+}
+/* 翻的时候把落定的那两层收掉：底板已经画了「当前左 + 下一页右」，
+ * 留着旧层会在右半页上叠出两张图。 */
+.y2k-cam__stage.is-flipping .y2k-sheet { opacity: 0; }
+
+/* ---- 叠化 ----
+ * 旧的原地不动，新的在它上面透出来。旧页那条 step-end 是关键 ——
+ * 它要**一直不透明**到最后一刻才撤，中间任何一帧漏出背景，
+ * 「化过去」就变成「闪一下」。
+ *
+ * ⚠️ fill-mode 用 backwards 不用 both：用 both 的话「看得见」就挂在动画的
+ * 最后一帧上，而标签页在后台时 Chrome 会把动画停住（playState 还是 running，
+ * 但 currentTime 一直是 0），那一刻 both 会把这一页钉死在 opacity 0，整页消失。 */
+[data-turn="dissolve"] .y2k-sheet.is-in  { animation: y2k-t-fadein 460ms ease backwards; }
+[data-turn="dissolve"] .y2k-sheet.is-out { animation: y2k-t-hold 460ms step-end backwards; }
+@keyframes y2k-t-fadein { from { opacity: 0 } to { opacity: 1 } }
+/* step-end：整段都停在第一帧，最后一刻才跳到第二帧 = 一直不透明，然后直接消失 */
+@keyframes y2k-t-hold   { from { opacity: 1 } to { opacity: 0 } }
+
+/* 被淘汰的那张：红斜纹。装在 figure 里，所以严丝合缝地贴着照片本身 ——
+ * 贴舞台的话，一张竖图的斜纹会糊到照片外面的空地上。 */
+.y2k-cam__cross {
+  position: absolute; inset: 0; z-index: 2;
+  display: none; place-items: center;
+  pointer-events: none; border-radius: 3px;
+  background: repeating-linear-gradient(-45deg,
+    rgba(210, 40, 60, .34) 0 9px, rgba(210, 40, 60, .10) 9px 18px);
+}
+.y2k-figure.is-dead .y2k-cam__cross { display: grid; }
+.y2k-cam__cross span {
+  font: 700 15px/1 var(--y2k-font); letter-spacing: .4em; text-indent: .4em;
+  color: #fff; padding: 6px 14px;
+  border: 2px solid rgba(255, 255, 255, .9); border-radius: 4px;
+  background: rgba(190, 30, 50, .82);
+  transform: rotate(-7deg);
+}
+.y2k-figure .y2k-cam__x { opacity: 0; }
+.y2k-figure:hover .y2k-cam__x,
+.y2k-figure.is-dead .y2k-cam__x { opacity: 1; }
+
+/* ---- 说明：**只有地点和时间**。
+ * 机身、镜头、光圈、像素那一行已经去掉 —— 那些是拍的人才关心的参数，
+ * 看照片的人不关心，而且每多一行就多分走一点注意力。 ---- */
+.y2k-cam__meta { text-align: center; }
+.y2k-cam__caption { margin: 0; font-size: 13px; line-height: 1.6; color: var(--y2k-ink); }
+/* 等宽大写 + 大字距 —— 千禧年那套标签写法。
+ * **只写文字，不做链接**：点了就跳走了，访客不会回来（PROJECT.md 08-25）。 */
+/* flex 会把每段文字变成独立的项，项与项之间的空格是会被吃掉的 ——
+ * 所以间距要用 gap 给，别在字符串里打空格。 */
+.y2k-cam__where {
+  margin: 4px 0 0;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-family: var(--y2k-mono); font-size: 12.5px; letter-spacing: .12em;
+  color: var(--y2k-ink-soft);
+}
+/* 自己画的定位符号（相册.js 的 pin()）。跟着 currentColor 和字号走，
+ * 所以换字色、换字号都不用管它 —— 这是它比 📍 强的全部理由。 */
+/* 日期跟地名之间拉开一段，靠间距分层，不再插分隔符 */
+.y2k-cam__when { margin-left: 16px; opacity: .8; }
+
+.y2k-pin {
+  width: .95em; height: 1.19em; flex: none;
+  margin-right: 3px;
+  transform: translateY(.06em);
+  opacity: .85;
+}
+
+/* 页码跟地名日期一样**居中**排在照片下面，不再蹲在页脚左边 */
+.y2k-cam__count {
+  margin: 5px 0 0;
+  font-family: var(--y2k-mono); font-size: 11.5px; letter-spacing: .22em;
+  color: var(--y2k-ink-faint); font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* 整理模式：按钮换个脸色，免得忘了自己还在整理模式里 */
+.y2k-btn.is-active {
+  color: var(--y2k-ink);
+  background: var(--y2k-accent-pale);
+  box-shadow: inset 0 0 0 1px var(--y2k-accent);
+}
+.y2k-cam__dumpwrap { flex: 1 1 auto; min-height: 0; display: grid;
+                     grid-template-rows: auto 1fr; gap: 8px; padding: var(--y2k-pad); }
+.y2k-cam__dump {
+  width: 100%; height: 100%; resize: none;
+  font: 10.5px/1.5 var(--y2k-mono); color: var(--y2k-ink);
+  padding: 10px; border: 0; border-radius: var(--y2k-r-xs);
+  background: var(--y2k-tint-sunken);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .2);
+}
+
+/* ============================ 14.8 · 全屏看照片 ============================ */
+/* 「电脑大屏甚至全屏看照片很重要，更有那种清晰的震撼的感觉。」
+ *
+ * 所以这一层**没有玻璃、没有窗口、没有 Y2K**：一整块近黑的底，照片顶到边，
+ * 别的什么都没有。所有 chrome 三秒后自己淡掉，鼠标一动再回来。
+ * 这里唯一的设计就是**不设计** —— 任何装饰都在跟照片抢。 */
+.y2k-full {
+  position: fixed; inset: 0; z-index: 100000;
+  display: grid; place-items: center;
+  background: #0A0D10;
+  animation: y2k-fade var(--y2k-base) var(--y2k-ease) both;
+  cursor: zoom-out;
+}
+.y2k-full__box { position: relative; line-height: 0; }
+.y2k-full__box img,
+.y2k-full__box video {
+  max-width: 100vw; max-height: 100vh;
+  width: auto; height: auto;
+  display: block;
+  /* 不放大：宁可四周留黑，也不要一张被拉软的照片 */
+}
+.y2k-full__box img[hidden], .y2k-full__box video[hidden] { display: none; }
+.y2k-full__bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  padding: 14px 20px 16px;
+  font: 11px/1.4 var(--y2k-mono); letter-spacing: .12em;
+  color: rgba(232, 244, 255, .82);
+  background: linear-gradient(transparent, rgba(0, 0, 0, .55));
+  transition: opacity var(--y2k-base) var(--y2k-ease);
+  cursor: default;
+}
+.y2k-full__bar b { font: inherit; font-weight: 700; color: #fff; }
+.y2k-full.is-idle .y2k-full__bar { opacity: 0; }
+.y2k-full__nav {
+  position: fixed; top: 0; bottom: 0; width: 22vw;
+  border: 0; background: transparent; color: transparent;
+  font-size: 40px; cursor: pointer;
+  transition: color var(--y2k-fast);
+}
+.y2k-full__nav:hover { color: rgba(255, 255, 255, .75); }
+.y2k-full__nav.prev { left: 0;  text-align: left;  padding-left: 22px; }
+.y2k-full__nav.next { right: 0; text-align: right; padding-right: 22px; }
+.y2k-full.is-idle .y2k-full__nav { color: transparent; }
+/* 全屏里照片上什么都不压。那枚橙色日期戳已经去掉了（2026-08-27）——
+ * 发光的字压在照片上，第一眼看到的永远是它而不是照片。 */
+
+/* ============================ 15 · 响应式 ============================ */
+@media (max-width: 560px) {
+  /* 手机上宁可两列 —— 封面是内容本身，挤成三列反而看不清，
+   * 而且卡片副标题（艺人 · 年份）在三列宽度下会被截成「NewJeans · 20…」。 */
+  :root { --y2k-pad: 12px; --y2k-gap: 9px; --y2k-card-w: 140px; }
+  .y2k-scrim   { padding: 0; }
+  .y2k-window  { width: 100%; max-height: 100%; height: 100%; border-radius: 0; }
+  .y2k-window::before { display: none; }   /* 全屏了就没有边可折射 */
+  .y2k-titlebar{ cursor: default; }
+  .y2k-window__footer { flex-wrap: wrap; }
+  /* 手机上缩略图那条太占地方，收掉 —— 翻页靠左右按钮和滑动就够 */
+  .y2k-cam { gap: 6px; padding: 8px 8px 6px; }
+  .y2k-film__frame { height: 92px; }
+  .y2k-cam__piles.is-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px 16px; }
+  .y2k-cam__piles.is-rows .y2k-pile { gap: 14px; padding: 8px 6px; }
+  .y2k-pile__deck { width: 168px; height: 122px; }
+  .y2k-pile--depth { --pile-step: 30px; }
+  .y2k-pile--depth .y2k-pile__card {
+    width: 168px;
+    transform: translateX(calc(var(--i, 0) * 22px)) scale(calc(1 - var(--i, 0) * 0.08));
+  }
+  .y2k-cam__piles.is-rows .y2k-pile__label b { font-size: 13px; }
+  .y2k-full__nav { width: 30vw; }
+}
+
+/* 触摸设备上没有 hover，别让卡片停在抬起状态 */
+@media (hover: none) {
+  .y2k-card:hover {
+    transform: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .20),
+                inset 0 1px 0 rgba(255, 255, 255, .34);
+  }
+  .y2k-row:hover  { background: transparent; padding-left: 12px; }
+}
+
+/* ============================ 16 · 无障碍 ============================ */
+@media (prefers-reduced-motion: reduce) {
+  .y2k *, .y2k *::before, .y2k *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .y2k-window, .y2k-scrim { animation: none !important; }
+}
+
+/* 高对比度偏好：玻璃加厚、颗粒关掉、边描实 */
+@media (prefers-contrast: more) {
+  :root {
+    --y2k-ink: #FFFFFF; --y2k-ink-soft: #DCEAF6; --y2k-ink-faint: #B3C7D8;
+    --y2k-tint: rgba(14, 32, 54, .82);
+    --y2k-tint-strong: rgba(10, 26, 46, .88);
+    --y2k-blur: blur(8px) saturate(1.2);
+  }
+  .y2k-grain::after { display: none; }
+}
