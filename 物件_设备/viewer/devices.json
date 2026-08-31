@@ -1,0 +1,132 @@
+{
+ "units": "m",
+ "origin": "xz-bbox center, y=0 is ground (blanket)",
+ "colors": {
+  "M_Silver": "#DFE5EA",
+  "M_SilverDark": "#AEB6BE",
+  "M_Deck": "#FFFFFF",
+  "M_ScreenMB": "#FFFFFF",
+  "M_Bezel": "#20252A",
+  "M_CamBody": "#33383C",
+  "M_CamTop": "#3C4348",
+  "M_Dial": "#2C3135",
+  "M_DialFace": "#7B838A",
+  "M_Shoe": "#868D93",
+  "M_Leather": "#414E3F",
+  "M_LensBarrel": "#2A2E32",
+  "M_LensRing": "#979EA4",
+  "M_LensGlass": "#FFFFFF",
+  "M_LensSpec": "#FFFFFF",
+  "M_LcdBezel": "#22272B",
+  "M_LcdScreen": "#FFFFFF",
+  "M_Logo": "#FFFFFF",
+  "M_CamSilver": "#DFE5EA",
+  "M_CamDark": "#3A4045",
+  "M_CcdScreen": "#FFFFFF",
+  "M_Lamp": "#E9A24E"
+ },
+ "textured": {
+  "M_Deck": "mb_deck.png",
+  "M_ScreenMB": "mb_screen.png",
+  "M_LcdScreen": "xs10_lcd.png",
+  "M_CcdScreen": "ccd_lcd.png",
+  "M_Logo": "xs10_logo.png"
+ },
+ "glassMats": [
+  "M_LensGlass"
+ ],
+ "emissiveMats": [
+  "M_ScreenMB",
+  "M_LcdScreen",
+  "M_CcdScreen"
+ ],
+ "additiveMats": [
+  "M_LensSpec"
+ ],
+ "variants": [
+  {
+   "name": "macbook",
+   "kind": "macbook",
+   "place": "blanket",
+   "hotspot": [
+    "mba_screen"
+   ],
+   "note": "银色 MacBook，无黑边，屏幕里是风景（母题 3）",
+   "screenSize": [
+    0.2887,
+    0.1966
+   ],
+   "screenTilt": 0.2967,
+   "lidHeight": 0.212,
+   "contactRadius": 0.0869,
+   "footprint": [
+    0.3041,
+    0.2752
+   ],
+   "height": 0.2119,
+   "tris": 1674,
+   "meshes": [
+    "mba_body",
+    "mba_hinge",
+    "mba_deck",
+    "mba_bezel",
+    "mba_screen"
+   ],
+   "screenCenter": [
+    0.0,
+    0.11121,
+    -0.10048
+   ]
+  },
+  {
+   "name": "camera_ccd",
+   "kind": "camera",
+   "place": "blanket",
+   "hotspot": [
+    "ccd_screen",
+    "ccd_lens_glass",
+    "ccd_lens_spec",
+    "ccd_ring",
+    "ccd_dark"
+   ],
+   "note": "千禧年银色小数码。镜头朝海，热区是机背那块屏",
+   "lensRadius": 0.0168,
+   "lensLength": 0.0154,
+   "screenSize": [
+    0.0495,
+    0.0371
+   ],
+   "lensDir": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "contactRadius": 0.0217,
+   "footprint": [
+    0.102,
+    0.0424
+   ],
+   "height": 0.0619,
+   "tris": 7440,
+   "meshes": [
+    "ccd_body",
+    "ccd_dark",
+    "ccd_ring",
+    "ccd_lens_glass",
+    "ccd_lens_spec",
+    "ccd_screen",
+    "ccd_lamp"
+   ],
+   "lensFront": [
+    -0.013,
+    0.03,
+    0.0212
+   ],
+   "screenCenter": [
+    0.0135,
+    0.029,
+    -0.0209
+   ]
+  }
+ ]
+}

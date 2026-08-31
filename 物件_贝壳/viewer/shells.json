@@ -1,0 +1,1139 @@
+{
+ "units": "m",
+ "origin": "bottom-center, y=0 is sand surface",
+ "colors": {
+  "M_PearlWhite": "#F8F2EC",
+  "M_Pink": "#F3EBE0",
+  "M_Cream": "#F7E9D0",
+  "M_Lining": "#F8F3EC",
+  "M_Blush": "#EFDCD3",
+  "M_MouthPale": "#F3ECE6",
+  "M_Urchin": "#DCDBCD",
+  "M_UrchinHole": "#B9B5A4",
+  "M_DollarBody": "#E6E1D6",
+  "M_DollarBot": "#DDD7CB",
+  "M_CowrieBack": "#F2E9DC",
+  "M_CowrieSpot": "#E2C9B8",
+  "M_Teeth": "#FBF7F1",
+  "M_Whelk": "#F4E6DA",
+  "M_WhelkRib": "#E8D2C6",
+  "M_ClamLight": "#F8F0E4",
+  "M_ClamDark": "#E8D3C2",
+  "M_Star": "#E9987E",
+  "M_StarDark": "#F2CDB6",
+  "M_Mussel": "#4A5166",
+  "M_MusselEdge": "#6B5A48",
+  "M_Nacre": "#ECE9EE",
+  "M_Moon": "#F2E9DB",
+  "M_MoonBand": "#E0C9B4",
+  "M_Limpet": "#E4DED3",
+  "M_LimpetRay": "#CEC4B6",
+  "M_ScallopTan": "#E9D0BB",
+  "M_ScallopTanLt": "#F7EEE3",
+  "M_ScallopPink": "#F1F2F0",
+  "M_Strombus": "#F5F0EA",
+  "M_StrombusLip": "#FBF8F3",
+  "M_StrombusBand": "#EFE6DA",
+  "M_StrombusIn": "#E6BBA9",
+  "M_StrombusDeep": "#CC9A90",
+  "M_Cockle": "#F6EEE2",
+  "M_CockleBand": "#E6CDB9",
+  "M_TellinPink": "#F4E2DC",
+  "M_TellinYellow": "#F3E3B4",
+  "M_Oyster": "#D6D3CB",
+  "M_OysterDark": "#B9B4A9",
+  "M_OysterIn": "#F1F0EC",
+  "M_Abalone": "#BBAE9E",
+  "M_AbaloneHole": "#7E7469",
+  "M_Nacre2": "#D9E4E0",
+  "M_Nacre3": "#E4E6E0",
+  "M_Razor": "#EADDC9",
+  "M_RazorBand": "#D2BDA8",
+  "M_Turret": "#F2EADE",
+  "M_TurretBand": "#E2CDBB",
+  "M_Tusk": "#F3EEE3",
+  "M_PebbleCream": "#FFFFFF",
+  "M_PebbleGrey": "#FFFFFF",
+  "M_PebbleTan": "#FFFFFF"
+ },
+ "variants": [
+  {
+   "name": "scallop_L_up",
+   "species": "scallop",
+   "size": "L",
+   "pose": "up",
+   "contactRadius": 0.0118,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0243,
+    0.023
+   ],
+   "height": 0.0044,
+   "tris": 1092
+  },
+  {
+   "name": "scallop_M_down",
+   "species": "scallop",
+   "size": "M",
+   "pose": "down",
+   "contactRadius": 0.0094,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0192,
+    0.0182
+   ],
+   "height": 0.0034,
+   "tris": 1092
+  },
+  {
+   "name": "scallop_S_buried",
+   "species": "scallop",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0069,
+   "buryDepth": 0.0034,
+   "footprint": [
+    0.015,
+    0.0125
+   ],
+   "height": 0.0082,
+   "tris": 1092
+  },
+  {
+   "name": "scallop_S_up",
+   "species": "scallop",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0152,
+    0.0144
+   ],
+   "height": 0.0027,
+   "tris": 1092
+  },
+  {
+   "name": "conch_L_up",
+   "species": "conch",
+   "size": "L",
+   "pose": "up",
+   "contactRadius": 0.009,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0118,
+    0.024
+   ],
+   "height": 0.0127,
+   "tris": 324
+  },
+  {
+   "name": "conch_S_down",
+   "species": "conch",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0056,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0074,
+    0.015
+   ],
+   "height": 0.0079,
+   "tris": 324
+  },
+  {
+   "name": "conch_M_buried",
+   "species": "conch",
+   "size": "M",
+   "pose": "buried",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.004,
+   "footprint": [
+    0.0138,
+    0.0159
+   ],
+   "height": 0.0096,
+   "tris": 324
+  },
+  {
+   "name": "whelk_M_up",
+   "species": "whelk",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.007,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0101,
+    0.0181
+   ],
+   "height": 0.0078,
+   "tris": 320
+  },
+  {
+   "name": "whelk_S_down",
+   "species": "whelk",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0056,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.008,
+    0.0143
+   ],
+   "height": 0.0062,
+   "tris": 320
+  },
+  {
+   "name": "whelk_M_buried",
+   "species": "whelk",
+   "size": "M",
+   "pose": "buried",
+   "contactRadius": 0.007,
+   "buryDepth": 0.0033,
+   "footprint": [
+    0.0148,
+    0.0131
+   ],
+   "height": 0.0078,
+   "tris": 320
+  },
+  {
+   "name": "clam_M_up",
+   "species": "clam",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0086,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.0156
+   ],
+   "height": 0.004,
+   "tris": 624
+  },
+  {
+   "name": "clam_S_down",
+   "species": "clam",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0068,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0123
+   ],
+   "height": 0.0032,
+   "tris": 624
+  },
+  {
+   "name": "clam_S_buried",
+   "species": "clam",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0063,
+   "buryDepth": 0.0036,
+   "footprint": [
+    0.0141,
+    0.011
+   ],
+   "height": 0.0086,
+   "tris": 624
+  },
+  {
+   "name": "cowrie_M_up",
+   "species": "cowrie",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0081,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.0133
+   ],
+   "height": 0.0072,
+   "tris": 672
+  },
+  {
+   "name": "cowrie_S_down",
+   "species": "cowrie",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0064,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0105
+   ],
+   "height": 0.0057,
+   "tris": 672
+  },
+  {
+   "name": "cowrie_S_buried",
+   "species": "cowrie",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0059,
+   "buryDepth": 0.0046,
+   "footprint": [
+    0.0129,
+    0.0105
+   ],
+   "height": 0.0109,
+   "tris": 672
+  },
+  {
+   "name": "sand_dollar_M_up",
+   "species": "sand_dollar",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0095,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.019
+   ],
+   "height": 0.0016,
+   "tris": 325
+  },
+  {
+   "name": "sand_dollar_S_down",
+   "species": "sand_dollar",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0075,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.015
+   ],
+   "height": 0.0013,
+   "tris": 325
+  },
+  {
+   "name": "sand_dollar_M_buried",
+   "species": "sand_dollar",
+   "size": "M",
+   "pose": "buried",
+   "contactRadius": 0.009,
+   "buryDepth": 0.0036,
+   "footprint": [
+    0.019,
+    0.0172
+   ],
+   "height": 0.0086,
+   "tris": 325
+  },
+  {
+   "name": "sand_dollar_S_up",
+   "species": "sand_dollar",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0075,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.015
+   ],
+   "height": 0.0013,
+   "tris": 325
+  },
+  {
+   "name": "urchin_M_up",
+   "species": "urchin",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0097,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0194,
+    0.0194
+   ],
+   "height": 0.0058,
+   "tris": 280
+  },
+  {
+   "name": "urchin_S_down",
+   "species": "urchin",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0076,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0153,
+    0.0153
+   ],
+   "height": 0.0046,
+   "tris": 280
+  },
+  {
+   "name": "urchin_S_buried",
+   "species": "urchin",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0071,
+   "buryDepth": 0.0041,
+   "footprint": [
+    0.0129,
+    0.0153
+   ],
+   "height": 0.0097,
+   "tris": 280
+  },
+  {
+   "name": "starfish_M_up",
+   "species": "starfish",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0158,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0309,
+    0.0324
+   ],
+   "height": 0.0053,
+   "tris": 840
+  },
+  {
+   "name": "starfish_S_down",
+   "species": "starfish",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0125,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0244,
+    0.0256
+   ],
+   "height": 0.0042,
+   "tris": 840
+  },
+  {
+   "name": "starfish_S_buried",
+   "species": "starfish",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0122,
+   "buryDepth": 0.0037,
+   "footprint": [
+    0.0244,
+    0.0243
+   ],
+   "height": 0.0089,
+   "tris": 840
+  },
+  {
+   "name": "starfish_thin_M_up",
+   "species": "starfish_thin",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0159,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0309,
+    0.0325
+   ],
+   "height": 0.0054,
+   "tris": 840
+  },
+  {
+   "name": "starfish_thin_S_up",
+   "species": "starfish_thin",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0125,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0243,
+    0.0256
+   ],
+   "height": 0.0042,
+   "tris": 840
+  },
+  {
+   "name": "starfish_thin_S_buried",
+   "species": "starfish_thin",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0121,
+   "buryDepth": 0.0039,
+   "footprint": [
+    0.0243,
+    0.0243
+   ],
+   "height": 0.0092,
+   "tris": 840
+  },
+  {
+   "name": "mussel_M_up",
+   "species": "mussel",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0068,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0188,
+    0.0085
+   ],
+   "height": 0.0032,
+   "tris": 432
+  },
+  {
+   "name": "mussel_S_down",
+   "species": "mussel",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0054,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0148,
+    0.0067
+   ],
+   "height": 0.0025,
+   "tris": 432
+  },
+  {
+   "name": "mussel_S_buried",
+   "species": "mussel",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0053,
+   "buryDepth": 0.0019,
+   "footprint": [
+    0.0148,
+    0.0063
+   ],
+   "height": 0.0045,
+   "tris": 432
+  },
+  {
+   "name": "moon_snail_M_up",
+   "species": "moon_snail",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0062,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0106,
+    0.0143
+   ],
+   "height": 0.0093,
+   "tris": 280
+  },
+  {
+   "name": "moon_snail_S_down",
+   "species": "moon_snail",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0049,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0084,
+    0.0113
+   ],
+   "height": 0.0073,
+   "tris": 280
+  },
+  {
+   "name": "moon_snail_S_buried",
+   "species": "moon_snail",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0045,
+   "buryDepth": 0.0031,
+   "footprint": [
+    0.009,
+    0.009
+   ],
+   "height": 0.0073,
+   "tris": 280
+  },
+  {
+   "name": "limpet_M_up",
+   "species": "limpet",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0087,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0196,
+    0.0151
+   ],
+   "height": 0.004,
+   "tris": 256
+  },
+  {
+   "name": "limpet_S_down",
+   "species": "limpet",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0068,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0154,
+    0.0119
+   ],
+   "height": 0.0032,
+   "tris": 256
+  },
+  {
+   "name": "limpet_S_buried",
+   "species": "limpet",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0063,
+   "buryDepth": 0.0032,
+   "footprint": [
+    0.0134,
+    0.0119
+   ],
+   "height": 0.0077,
+   "tris": 256
+  },
+  {
+   "name": "strombus_M_up",
+   "species": "strombus",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0085,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.015
+   ],
+   "height": 0.0139,
+   "tris": 4172
+  },
+  {
+   "name": "strombus_S_down",
+   "species": "strombus",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0067,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0118
+   ],
+   "height": 0.011,
+   "tris": 4172
+  },
+  {
+   "name": "strombus_S_buried",
+   "species": "strombus",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0064,
+   "buryDepth": 0.0046,
+   "footprint": [
+    0.0153,
+    0.0104
+   ],
+   "height": 0.011,
+   "tris": 4172
+  },
+  {
+   "name": "conch_round_L_up",
+   "species": "conch_round",
+   "size": "L",
+   "pose": "up",
+   "contactRadius": 0.0092,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.024,
+    0.0129
+   ],
+   "height": 0.0129,
+   "tris": 1344
+  },
+  {
+   "name": "conch_round_S_down",
+   "species": "conch_round",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0058,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0081
+   ],
+   "height": 0.0081,
+   "tris": 1344
+  },
+  {
+   "name": "conch_round_M_buried",
+   "species": "conch_round",
+   "size": "M",
+   "pose": "buried",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.0043,
+   "footprint": [
+    0.0162,
+    0.0132
+   ],
+   "height": 0.0102,
+   "tris": 1344
+  },
+  {
+   "name": "cockle_M_up",
+   "species": "cockle",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0094,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0198,
+    0.0178
+   ],
+   "height": 0.0058,
+   "tris": 576
+  },
+  {
+   "name": "cockle_S_down",
+   "species": "cockle",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0157,
+    0.014
+   ],
+   "height": 0.0046,
+   "tris": 576
+  },
+  {
+   "name": "cockle_S_buried",
+   "species": "cockle",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0069,
+   "buryDepth": 0.0041,
+   "footprint": [
+    0.0157,
+    0.0119
+   ],
+   "height": 0.0097,
+   "tris": 576
+  },
+  {
+   "name": "tellin_pink_M_up",
+   "species": "tellin_pink",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0077,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.0118
+   ],
+   "height": 0.0017,
+   "tris": 432
+  },
+  {
+   "name": "tellin_pink_S_down",
+   "species": "tellin_pink",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0061,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0093
+   ],
+   "height": 0.0014,
+   "tris": 432
+  },
+  {
+   "name": "tellin_yellow_M_up",
+   "species": "tellin_yellow",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0077,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.0118
+   ],
+   "height": 0.0017,
+   "tris": 432
+  },
+  {
+   "name": "tellin_yellow_S_buried",
+   "species": "tellin_yellow",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0059,
+   "buryDepth": 0.0019,
+   "footprint": [
+    0.015,
+    0.0085
+   ],
+   "height": 0.0046,
+   "tris": 432
+  },
+  {
+   "name": "oyster_M_up",
+   "species": "oyster",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0086,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0191,
+    0.0153
+   ],
+   "height": 0.0029,
+   "tris": 504
+  },
+  {
+   "name": "oyster_S_down",
+   "species": "oyster",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0068,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0151,
+    0.0121
+   ],
+   "height": 0.0023,
+   "tris": 504
+  },
+  {
+   "name": "oyster_S_buried",
+   "species": "oyster",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0065,
+   "buryDepth": 0.0028,
+   "footprint": [
+    0.0151,
+    0.0108
+   ],
+   "height": 0.0066,
+   "tris": 504
+  },
+  {
+   "name": "abalone_M_up",
+   "species": "abalone",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0082,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0189,
+    0.0137
+   ],
+   "height": 0.0026,
+   "tris": 504
+  },
+  {
+   "name": "abalone_S_down",
+   "species": "abalone",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0064,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0108
+   ],
+   "height": 0.0021,
+   "tris": 504
+  },
+  {
+   "name": "abalone_S_buried",
+   "species": "abalone",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0061,
+   "buryDepth": 0.0024,
+   "footprint": [
+    0.015,
+    0.0095
+   ],
+   "height": 0.0058,
+   "tris": 504
+  },
+  {
+   "name": "razor_M_up",
+   "species": "razor",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0057,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.019,
+    0.0036
+   ],
+   "height": 0.0012,
+   "tris": 230
+  },
+  {
+   "name": "razor_S_down",
+   "species": "razor",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0045,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0029
+   ],
+   "height": 0.001,
+   "tris": 230
+  },
+  {
+   "name": "turret_M_up",
+   "species": "turret",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0058,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0043,
+    0.019
+   ],
+   "height": 0.0042,
+   "tris": 364
+  },
+  {
+   "name": "turret_S_down",
+   "species": "turret",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0046,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0034,
+    0.015
+   ],
+   "height": 0.0033,
+   "tris": 364
+  },
+  {
+   "name": "turret_S_buried",
+   "species": "turret",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.004,
+   "buryDepth": 0.0039,
+   "footprint": [
+    0.0034,
+    0.0128
+   ],
+   "height": 0.0093,
+   "tris": 364
+  },
+  {
+   "name": "tusk_S_up",
+   "species": "tusk",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0043,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0024
+   ],
+   "height": 0.0042,
+   "tris": 256
+  },
+  {
+   "name": "tusk_S_down",
+   "species": "tusk",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0043,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0024
+   ],
+   "height": 0.0042,
+   "tris": 256
+  },
+  {
+   "name": "scallop_tan_M_up",
+   "species": "scallop_tan",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0094,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0192,
+    0.0182
+   ],
+   "height": 0.0034,
+   "tris": 1092
+  },
+  {
+   "name": "scallop_tan_S_down",
+   "species": "scallop_tan",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0152,
+    0.0144
+   ],
+   "height": 0.0027,
+   "tris": 1092
+  },
+  {
+   "name": "scallop_pink_S_up",
+   "species": "scallop_pink",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0152,
+    0.0144
+   ],
+   "height": 0.0027,
+   "tris": 1092
+  },
+  {
+   "name": "scallop_pink_M_buried",
+   "species": "scallop_pink",
+   "size": "M",
+   "pose": "buried",
+   "contactRadius": 0.0087,
+   "buryDepth": 0.0043,
+   "footprint": [
+    0.019,
+    0.0159
+   ],
+   "height": 0.0103,
+   "tris": 1092
+  },
+  {
+   "name": "pebble_round_M_up",
+   "species": "pebble_round",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0088,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0184,
+    0.0166
+   ],
+   "height": 0.011,
+   "tris": 256
+  },
+  {
+   "name": "pebble_round_S_up",
+   "species": "pebble_round",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0069,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0145,
+    0.0131
+   ],
+   "height": 0.0087,
+   "tris": 256
+  },
+  {
+   "name": "pebble_round_S_buried",
+   "species": "pebble_round",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0069,
+   "buryDepth": 0.0037,
+   "footprint": [
+    0.0145,
+    0.0131
+   ],
+   "height": 0.0087,
+   "tris": 256
+  },
+  {
+   "name": "pebble_flat_M_up",
+   "species": "pebble_flat",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0082,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0183,
+    0.0146
+   ],
+   "height": 0.0068,
+   "tris": 256
+  },
+  {
+   "name": "pebble_flat_S_down",
+   "species": "pebble_flat",
+   "size": "S",
+   "pose": "down",
+   "contactRadius": 0.0067,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0136,
+    0.0131
+   ],
+   "height": 0.0054,
+   "tris": 256
+  },
+  {
+   "name": "pebble_flat_S_up",
+   "species": "pebble_flat",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0065,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0144,
+    0.0115
+   ],
+   "height": 0.0054,
+   "tris": 256
+  },
+  {
+   "name": "pebble_long_S_up",
+   "species": "pebble_long",
+   "size": "S",
+   "pose": "up",
+   "contactRadius": 0.0058,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.015,
+    0.0083
+   ],
+   "height": 0.0063,
+   "tris": 256
+  },
+  {
+   "name": "pebble_long_S_buried",
+   "species": "pebble_long",
+   "size": "S",
+   "pose": "buried",
+   "contactRadius": 0.0058,
+   "buryDepth": 0.0026,
+   "footprint": [
+    0.015,
+    0.0083
+   ],
+   "height": 0.0063,
+   "tris": 256
+  },
+  {
+   "name": "pebble_long_M_up",
+   "species": "pebble_long",
+   "size": "M",
+   "pose": "up",
+   "contactRadius": 0.0074,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0191,
+    0.0105
+   ],
+   "height": 0.008,
+   "tris": 256
+  }
+ ]
+}

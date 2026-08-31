@@ -1,0 +1,155 @@
+{
+ "units": "m",
+ "origin": "bottom-center, y=0 is sand surface",
+ "colors": {
+  "M_CrabBody": "#E6978A",
+  "M_CrabDark": "#CF8275",
+  "M_CrabBelly": "#F1C3B5",
+  "M_Eye": "#2B2622",
+  "M_EyeLight": "#FFFFFF",
+  "M_Cheek": "#E9A6A8",
+  "M_TurtleShell": "#B7AA87",
+  "M_TurtleScute": "#A09273",
+  "M_TurtleRim": "#D9CDB0",
+  "M_TurtleSkin": "#A9CBA2",
+  "M_TurtleBelly": "#EFE8D3",
+  "M_Octo": "#E9ADA6"
+ },
+ "variants": [
+  {
+   "name": "crab_crawl",
+   "species": "crab",
+   "pose": "crawl",
+   "kind": "critter",
+   "contactRadius": 0.015,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0499,
+    0.036
+   ],
+   "height": 0.0237,
+   "tris": 940,
+   "facing": "+z"
+  },
+  {
+   "name": "crab_rest",
+   "species": "crab",
+   "pose": "rest",
+   "kind": "critter",
+   "contactRadius": 0.015,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0491,
+    0.0359
+   ],
+   "height": 0.0211,
+   "tris": 940,
+   "facing": "+z"
+  },
+  {
+   "name": "crab_tuck",
+   "species": "crab",
+   "pose": "tuck",
+   "kind": "critter",
+   "contactRadius": 0.015,
+   "buryDepth": 0.0055,
+   "footprint": [
+    0.043,
+    0.0374
+   ],
+   "height": 0.0185,
+   "tris": 940,
+   "facing": "+z"
+  },
+  {
+   "name": "turtle_crawl",
+   "species": "turtle",
+   "pose": "crawl",
+   "kind": "critter",
+   "contactRadius": 0.0258,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0823,
+    0.0728
+   ],
+   "height": 0.0195,
+   "tris": 677,
+   "facing": "+z"
+  },
+  {
+   "name": "turtle_rest",
+   "species": "turtle",
+   "pose": "rest",
+   "kind": "critter",
+   "contactRadius": 0.0258,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.081,
+    0.072
+   ],
+   "height": 0.0195,
+   "tris": 677,
+   "facing": "+z"
+  },
+  {
+   "name": "turtle_tuck",
+   "species": "turtle",
+   "pose": "tuck",
+   "kind": "critter",
+   "contactRadius": 0.0258,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0604,
+    0.062
+   ],
+   "height": 0.0195,
+   "tris": 677,
+   "facing": "+z"
+  },
+  {
+   "name": "octopus_crawl",
+   "species": "octopus",
+   "pose": "crawl",
+   "kind": "critter",
+   "contactRadius": 0.0193,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0652,
+    0.0648
+   ],
+   "height": 0.0364,
+   "tris": 904,
+   "facing": "+z"
+  },
+  {
+   "name": "octopus_rest",
+   "species": "octopus",
+   "pose": "rest",
+   "kind": "critter",
+   "contactRadius": 0.0193,
+   "buryDepth": 0.0,
+   "footprint": [
+    0.0512,
+    0.0509
+   ],
+   "height": 0.0346,
+   "tris": 904,
+   "facing": "+z"
+  },
+  {
+   "name": "octopus_tuck",
+   "species": "octopus",
+   "pose": "tuck",
+   "kind": "critter",
+   "contactRadius": 0.0193,
+   "buryDepth": 0.0048,
+   "footprint": [
+    0.0388,
+    0.0384
+   ],
+   "height": 0.0321,
+   "tris": 904,
+   "facing": "+z"
+  }
+ ]
+}

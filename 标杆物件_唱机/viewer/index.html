@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>标杆物件 · 黑胶唱机</title>
+<style>
+  :root{ --bg:#EFEBE3; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;
+    font:13px/1.5 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;color:#4A443C}
+  #view{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  #view:active{cursor:grabbing}
+
+  #hint{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    letter-spacing:.14em;font-size:11px;color:#8E877C;pointer-events:none;
+    mix-blend-mode:multiply}
+
+  #nowplaying{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);
+    letter-spacing:.05em;font-size:12px;color:#6E675C;pointer-events:none;
+    mix-blend-mode:multiply;white-space:nowrap}
+
+  #panel{position:fixed;top:16px;right:16px;width:212px;padding:12px 13px 11px;
+    background:rgba(255,253,249,.82);backdrop-filter:blur(6px);
+    border:1px solid rgba(90,80,66,.13);border-radius:9px;
+    box-shadow:0 6px 22px -14px rgba(70,60,45,.5)}
+  #panel.hidden{display:none}
+  #panel label{display:grid;grid-template-columns:52px 1fr 34px;align-items:center;
+    gap:6px;margin-bottom:5px}
+  #panel span{font-size:11px;color:#7D7568}
+  #panel b{font-size:10px;color:#A29A8C;font-weight:400;text-align:right;
+    font-variant-numeric:tabular-nums}
+  #panel input[type=range]{width:100%;height:14px;accent-color:#9A8F7C;margin:0}
+  .views{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .views button{flex:1 1 auto;padding:4px 6px;font-size:11px;cursor:pointer;
+    color:#6B6458;background:#F6F2EA;border:1px solid rgba(90,80,66,.15);border-radius:5px}
+  .views button:hover{background:#EDE7DC}
+  #tip{position:fixed;left:16px;bottom:14px;font-size:10px;color:#A9A296;
+    letter-spacing:.06em}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;
+    font-size:11px;letter-spacing:.2em;color:#A9A296}
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "../../共用/vendor/three/build/three.module.js",
+    "three/addons/": "../../共用/vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="loading">载入中</div>
+  <div id="hint">点唱片播放</div>
+  <div id="nowplaying"></div>
+  <div id="panel"></div>
+  <div id="tip">拖动 orbit ｜ 空格播放 ｜ H 开关面板</div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

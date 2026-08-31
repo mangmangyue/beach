@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物件 · 贝壳</title>
+<style>
+  :root{ --bg:#0B0E14; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;
+    font:13px/1.5 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;color:#C9CFD8}
+  #view{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  #view:active{cursor:grabbing}
+
+  #panel{position:fixed;top:16px;right:16px;width:212px;padding:12px 13px 11px;
+    background:rgba(18,21,28,.82);backdrop-filter:blur(6px);
+    border:1px solid rgba(160,175,200,.14);border-radius:9px;
+    box-shadow:0 6px 22px -14px rgba(0,0,0,.8)}
+  #panel.hidden{display:none}
+  #panel label{display:grid;grid-template-columns:52px 1fr 34px;align-items:center;
+    gap:6px;margin-bottom:5px}
+  #panel span{font-size:11px;color:#97A3B5}
+  #panel b{font-size:10px;color:#6F7A8A;font-weight:400;text-align:right;
+    font-variant-numeric:tabular-nums}
+  #panel input[type=range]{width:100%;height:14px;accent-color:#9FB4CF;margin:0}
+  .views{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+  .views button{flex:1 1 auto;padding:4px 6px;font-size:11px;cursor:pointer;
+    color:#C9CFD8;background:#1C2129;border:1px solid rgba(160,175,200,.18);border-radius:5px}
+  .views button:hover{background:#262C37}
+  .views button.on{background:#34405A}
+  #tip{position:fixed;left:16px;bottom:14px;font-size:10px;color:#6F7A8A;
+    letter-spacing:.06em}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;
+    font-size:11px;letter-spacing:.2em;color:#6F7A8A}
+  #label{position:fixed;left:16px;top:16px;font-size:11px;letter-spacing:.08em;color:#97A3B5;
+    pointer-events:none;white-space:pre-line}
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "../../共用/vendor/three/build/three.module.js",
+    "three/addons/": "../../共用/vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="loading">载入中</div>
+  <div id="label"></div>
+  <div id="panel"></div>
+  <div id="tip">拖动空处 orbit ｜ 拖贝壳推沙 ｜ H 开关面板</div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

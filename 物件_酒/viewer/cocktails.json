@@ -1,0 +1,57 @@
+{
+ "units": "m",
+ "origin": "杯子的回转轴在原点，最低点 y=0（沙面）。装饰挂在口沿外，所以包围盒不是对称的。",
+ "seg": 12,
+ "colors": {
+  "M_Glass": "#E6F0F1",
+  "M_LiqGimlet": "#D5E39B",
+  "M_LiqAperol": "#EF5719",
+  "M_LiqSunrise": "#F0731E",
+  "M_LiqBlue": "#12A6D8",
+  "M_LiqColada": "#F3E7D2",
+  "M_IceCube": "#EAF6FA",
+  "M_LimeRind": "#7BA63A",
+  "M_LimeFlesh": "#DCE9AE",
+  "M_LimeFleshD": "#C6DA8E",
+  "M_Orange": "#FFFFFF",
+  "M_OrangeRind": "#E8912A",
+  "M_Cherry": "#B4232E",
+  "M_CherryStem": "#6E7A46",
+  "M_MintLeaf": "#5D8C46",
+  "M_MintStem": "#84A55E",
+  "M_PineFlesh": "#F2C64A",
+  "M_PineRind": "#B98A3C",
+  "M_UmbA": "#F0A8B8",
+  "M_UmbB": "#F7F0E4",
+  "M_UmbStick": "#D9C79E",
+  "M_StrawA": "#F5F2EC",
+  "M_StrawB": "#E8635C"
+ },
+ "cocktails": [
+  {
+   "key": "sunrise",
+   "name": "Tequila Sunrise",
+   "cn": "Tequila Sunrise · 渐变分层",
+   "type": "橙红渐变分层 · 高杯",
+   "note": "唯一一杯酒液颜色来自贴图",
+   "glass": "collins",
+   "glassHeight": 0.145,
+   "footRadius": 0.03,
+   "contactRadius": 0.0336,
+   "fill": 0.129,
+   "liquidMat": "M_LiqSunrise",
+   "opaqueLiquid": false,
+   "sloshPivot": [
+    -0.00748,
+    0.02056
+   ],
+   "tris": 400,
+   "parts": [
+    "Sunrise__Glass",
+    "Sunrise__Liquid",
+    "Sunrise__Garnish",
+    "Sunrise__GarnishIn"
+   ]
+  }
+ ]
+}

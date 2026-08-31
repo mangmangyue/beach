@@ -1,0 +1,212 @@
+{
+ "units": "m",
+ "origin": "bottom-center, y=0 is ground (blanket / sand)",
+ "colors": {
+  "M_SunPetal": "#FFFFFF",
+  "M_SunDisc": "#FFFFFF",
+  "M_DiscRim": "#A8834C",
+  "M_DiscBack": "#8FA06A",
+  "M_Sepal": "#7E9862",
+  "M_Stem": "#86A06B",
+  "M_StemCut": "#CBD9A8",
+  "M_Leaf": "#7C9C63",
+  "M_PrimPetal": "#F3E7AE",
+  "M_PrimEye": "#E2C86E",
+  "M_PrimSepal": "#B9A878",
+  "M_GreyLeaf": "#A3AD93",
+  "M_Bud": "#CDD39B",
+  "M_BindPetal": "#FFFFFF",
+  "M_BindThroat": "#F7EFD4",
+  "M_BindLeaf": "#8CA57A",
+  "M_BindStem": "#9A9878",
+  "M_DaisyPetal": "#EFEADB",
+  "M_DaisyEye": "#E3C96C",
+  "M_DaisyLeaf": "#93A884"
+ },
+ "textured": {
+  "M_SunPetal": "sun_petal.png",
+  "M_SunDisc": "sun_disc.png",
+  "M_BindPetal": "bindweed.png"
+ },
+ "petalMats": [
+  "M_SunPetal",
+  "M_PrimPetal",
+  "M_BindPetal",
+  "M_DaisyPetal"
+ ],
+ "variants": [
+  {
+   "name": "sunflower_a",
+   "kind": "sunflower",
+   "place": "blanket",
+   "contactRadius": 0.037,
+   "footprint": [
+    0.2192,
+    0.0768
+   ],
+   "height": 0.0436,
+   "length": 0.2192,
+   "tris": 498,
+   "headCenter": [
+    0.0758,
+    0.0239,
+    0.0027
+   ],
+   "headRadius": 0.0355
+  },
+  {
+   "name": "sunflower_b",
+   "kind": "sunflower",
+   "place": "blanket",
+   "contactRadius": 0.0353,
+   "footprint": [
+    0.2014,
+    0.0813
+   ],
+   "height": 0.0626,
+   "length": 0.2014,
+   "tris": 502,
+   "headCenter": [
+    0.0748,
+    0.0306,
+    -0.0065
+   ],
+   "headRadius": 0.0365
+  },
+  {
+   "name": "sunflower_c",
+   "kind": "sunflower",
+   "place": "blanket",
+   "contactRadius": 0.036,
+   "footprint": [
+    0.2077,
+    0.0801
+   ],
+   "height": 0.0625,
+   "length": 0.2077,
+   "tris": 518,
+   "headCenter": [
+    0.0914,
+    0.0296,
+    0.0087
+   ],
+   "headRadius": 0.0325
+  },
+  {
+   "name": "sunflower_d",
+   "kind": "sunflower",
+   "place": "blanket",
+   "contactRadius": 0.0299,
+   "footprint": [
+    0.1802,
+    0.0589
+   ],
+   "height": 0.0552,
+   "length": 0.1802,
+   "tris": 474,
+   "headCenter": [
+    0.0551,
+    0.0279,
+    -0.0004
+   ],
+   "headRadius": 0.0355
+  },
+  {
+   "name": "sunflower_bud",
+   "kind": "sunflower",
+   "place": "blanket",
+   "contactRadius": 0.0286,
+   "footprint": [
+    0.17,
+    0.059
+   ],
+   "height": 0.0519,
+   "length": 0.17,
+   "tris": 458,
+   "headCenter": [
+    0.0503,
+    0.0223,
+    0.0036
+   ],
+   "headRadius": 0.026
+  },
+  {
+   "name": "primrose_a",
+   "kind": "primrose",
+   "place": "sand",
+   "contactRadius": 0.0171,
+   "footprint": [
+    0.0631,
+    0.0612
+   ],
+   "height": 0.0417,
+   "length": 0.0631,
+   "tris": 142
+  },
+  {
+   "name": "primrose_b",
+   "kind": "primrose",
+   "place": "sand",
+   "contactRadius": 0.0131,
+   "footprint": [
+    0.0514,
+    0.0442
+   ],
+   "height": 0.0362,
+   "length": 0.0514,
+   "tris": 162
+  },
+  {
+   "name": "bindweed_a",
+   "kind": "bindweed",
+   "place": "sand",
+   "contactRadius": 0.0193,
+   "footprint": [
+    0.0859,
+    0.0544
+   ],
+   "height": 0.0408,
+   "length": 0.0859,
+   "tris": 192
+  },
+  {
+   "name": "bindweed_b",
+   "kind": "bindweed",
+   "place": "sand",
+   "contactRadius": 0.0166,
+   "footprint": [
+    0.0742,
+    0.0465
+   ],
+   "height": 0.0342,
+   "length": 0.0742,
+   "tris": 200
+  },
+  {
+   "name": "mayweed_a",
+   "kind": "mayweed",
+   "place": "sand",
+   "contactRadius": 0.0116,
+   "footprint": [
+    0.0417,
+    0.0424
+   ],
+   "height": 0.031,
+   "length": 0.0424,
+   "tris": 232
+  },
+  {
+   "name": "mayweed_b",
+   "kind": "mayweed",
+   "place": "sand",
+   "contactRadius": 0.0098,
+   "footprint": [
+    0.0403,
+    0.0312
+   ],
+   "height": 0.026,
+   "length": 0.0403,
+   "tris": 392
+  }
+ ]
+}

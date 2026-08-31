@@ -1,0 +1,156 @@
+{
+ "生成": "blender/build_guitar.py",
+ "说明": "一把单缺角 MJ 桶型木吉他。部件分材质，颜色不写死在模型里 —— 在 调色台.html 里选。",
+ "尺寸cm": {
+  "全长": 102.6,
+  "宽": 39.6,
+  "高": 12.9,
+  "琴身长": 49.1,
+  "弦长": 64.8,
+  "音孔直径": 10.0,
+  "琴颈离地": 1.7
+ },
+ "面数": 12794,
+ "变体": [
+  {
+   "kind": "guitar",
+   "place": "blanket",
+   "footprint": [
+    1.0257,
+    0.3955
+   ],
+   "height": 0.1292,
+   "contactRadius": 0.1978,
+   "tris": 12794,
+   "lengthCm": 102.6,
+   "neckClearance": 0.0171,
+   "hotspot": [
+    "guitar_top",
+    "guitar_back",
+    "guitar_side",
+    "guitar_binding",
+    "guitar_rosette",
+    "guitar_cavity",
+    "guitar_bridge",
+    "guitar_neck",
+    "guitar_fretboard"
+   ],
+   "optionalMeshes": [
+    "guitar_pickguard"
+   ],
+   "soundhole": [
+    0.16467,
+    0.10974,
+    -0.00013
+   ],
+   "bodyCenter": [
+    0.27895,
+    0.11266,
+    -0.00013
+   ],
+   "cutawayTip": [
+    0.0698,
+    0.10329,
+    -0.12978
+   ],
+   "meshes": [
+    "guitar_top",
+    "guitar_back",
+    "guitar_side",
+    "guitar_binding",
+    "guitar_cavity",
+    "guitar_rosette",
+    "guitar_neck",
+    "guitar_headplate",
+    "guitar_fretboard",
+    "guitar_frets",
+    "guitar_bridge",
+    "guitar_saddle",
+    "guitar_nut",
+    "guitar_pins",
+    "guitar_tuners",
+    "guitar_strings",
+    "guitar_pickguard",
+    "guitar_bird"
+   ]
+  }
+ ],
+ "材质槽": {
+  "M_Top": {
+   "默认色": "#E3D2B0",
+   "贴图": "grain_fine.png"
+  },
+  "M_Back": {
+   "默认色": "#6B4636",
+   "贴图": "grain_wave.png"
+  },
+  "M_Neck": {
+   "默认色": "#D6BE96",
+   "贴图": "grain_fine.png"
+  },
+  "M_Fretboard": {
+   "默认色": "#3A2A24",
+   "贴图": "grain_wave.png"
+  },
+  "M_Headstock": {
+   "默认色": "#3E2C25",
+   "贴图": "grain_wave.png"
+  },
+  "M_Bridge": {
+   "默认色": "#332621",
+   "贴图": "grain_wave.png"
+  },
+  "M_Rosette": {
+   "默认色": "#C9C3BE",
+   "贴图": null
+  },
+  "M_Pickguard": {
+   "默认色": "#4A3325",
+   "贴图": null
+  },
+  "M_Gold": {
+   "默认色": "#C4A159",
+   "贴图": null
+  },
+  "M_String": {
+   "默认色": "#C8C0AE",
+   "贴图": null
+  },
+  "M_Fret": {
+   "默认色": "#B9BCB8",
+   "贴图": null
+  },
+  "M_Bone": {
+   "默认色": "#E8DFC9",
+   "贴图": null
+  },
+  "M_Binding": {
+   "默认色": "#EADFC4",
+   "贴图": null
+  },
+  "M_Cavity": {
+   "默认色": "#241C18",
+   "贴图": null
+  }
+ },
+ "mesh到材质": {
+  "guitar_top": "M_Top",
+  "guitar_back": "M_Back",
+  "guitar_side": "M_Back",
+  "guitar_binding": "M_Binding",
+  "guitar_cavity": "M_Cavity",
+  "guitar_rosette": "M_Rosette",
+  "guitar_neck": "M_Neck",
+  "guitar_headplate": "M_Headstock",
+  "guitar_fretboard": "M_Fretboard",
+  "guitar_frets": "M_Fret",
+  "guitar_bridge": "M_Bridge",
+  "guitar_saddle": "M_Bone",
+  "guitar_nut": "M_Bone",
+  "guitar_pins": "M_Bone",
+  "guitar_tuners": "M_Gold",
+  "guitar_strings": "M_String",
+  "guitar_pickguard": "M_Pickguard",
+  "guitar_bird": "M_Rosette"
+ }
+}

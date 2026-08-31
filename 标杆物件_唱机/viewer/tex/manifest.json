@@ -1,0 +1,134 @@
+{
+  "records": [
+    {
+      "name": "How Sweet",
+      "sleeve": "tex/sleeve/How Sweet.png",
+      "record": "tex/record/How Sweet__art.png",
+      "recordStyles": {
+        "classic": "tex/record/How Sweet__classic.png",
+        "art": "tex/record/How Sweet__art.png",
+        "plain": "tex/record/How Sweet__plain.png"
+      },
+      "back": "tex/back/How Sweet.png",
+      "spine": "tex/spine/How Sweet.png",
+      "labelColor": "#25849D"
+    },
+    {
+      "name": "NJWMX",
+      "sleeve": "tex/sleeve/NJWMX.png",
+      "record": "tex/record/NJWMX__art.png",
+      "recordStyles": {
+        "classic": "tex/record/NJWMX__classic.png",
+        "art": "tex/record/NJWMX__art.png",
+        "plain": "tex/record/NJWMX__plain.png"
+      },
+      "back": "tex/back/NJWMX.png",
+      "spine": "tex/spine/NJWMX.png",
+      "labelColor": "#338F3D"
+    },
+    {
+      "name": "NewJeans 'OMG'",
+      "sleeve": "tex/sleeve/NewJeans 'OMG'.png",
+      "record": "tex/record/NewJeans 'OMG'__art.png",
+      "recordStyles": {
+        "classic": "tex/record/NewJeans 'OMG'__classic.png",
+        "art": "tex/record/NewJeans 'OMG'__art.png",
+        "plain": "tex/record/NewJeans 'OMG'__plain.png"
+      },
+      "back": "tex/back/NewJeans 'OMG'.png",
+      "spine": "tex/spine/NewJeans 'OMG'.png",
+      "labelColor": "#A03D4D"
+    },
+    {
+      "name": "NewJeans 1st EP 'New Jeans'",
+      "sleeve": "tex/sleeve/NewJeans 1st EP 'New Jeans'.png",
+      "record": "tex/record/NewJeans 1st EP 'New Jeans'__art.png",
+      "recordStyles": {
+        "classic": "tex/record/NewJeans 1st EP 'New Jeans'__classic.png",
+        "art": "tex/record/NewJeans 1st EP 'New Jeans'__art.png",
+        "plain": "tex/record/NewJeans 1st EP 'New Jeans'__plain.png"
+      },
+      "back": "tex/back/NewJeans 1st EP 'New Jeans'.png",
+      "spine": "tex/spine/NewJeans 1st EP 'New Jeans'.png",
+      "labelColor": "#505BA8"
+    },
+    {
+      "name": "NewJeans 2nd EP 'Get Up'",
+      "sleeve": "tex/sleeve/NewJeans 2nd EP 'Get Up'.png",
+      "record": "tex/record/NewJeans 2nd EP 'Get Up'__art.png",
+      "recordStyles": {
+        "classic": "tex/record/NewJeans 2nd EP 'Get Up'__classic.png",
+        "art": "tex/record/NewJeans 2nd EP 'Get Up'__art.png",
+        "plain": "tex/record/NewJeans 2nd EP 'Get Up'__plain.png"
+      },
+      "back": "tex/back/NewJeans 2nd EP 'Get Up'.png",
+      "spine": "tex/spine/NewJeans 2nd EP 'Get Up'.png",
+      "labelColor": "#4998D4"
+    },
+    {
+      "name": "Sons of 1973",
+      "sleeve": "tex/sleeve/Sons of 1973.png",
+      "record": "tex/record/Sons of 1973__art.png",
+      "recordStyles": {
+        "classic": "tex/record/Sons of 1973__classic.png",
+        "art": "tex/record/Sons of 1973__art.png",
+        "plain": "tex/record/Sons of 1973__plain.png"
+      },
+      "back": "tex/back/Sons of 1973.png",
+      "spine": "tex/spine/Sons of 1973.png",
+      "labelColor": "#4C80D2"
+    },
+    {
+      "name": "Supernatural",
+      "sleeve": "tex/sleeve/Supernatural.png",
+      "record": "tex/record/Supernatural__art.png",
+      "recordStyles": {
+        "classic": "tex/record/Supernatural__classic.png",
+        "art": "tex/record/Supernatural__art.png",
+        "plain": "tex/record/Supernatural__plain.png"
+      },
+      "back": "tex/back/Supernatural.png",
+      "spine": "tex/spine/Supernatural.png",
+      "labelColor": "#BA5539"
+    },
+    {
+      "name": "kei nishikori meet nujabes",
+      "sleeve": "tex/sleeve/kei nishikori meet nujabes.png",
+      "record": "tex/record/kei nishikori meet nujabes__art.png",
+      "recordStyles": {
+        "classic": "tex/record/kei nishikori meet nujabes__classic.png",
+        "art": "tex/record/kei nishikori meet nujabes__art.png",
+        "plain": "tex/record/kei nishikori meet nujabes__plain.png"
+      },
+      "back": "tex/back/kei nishikori meet nujabes.png",
+      "spine": "tex/spine/kei nishikori meet nujabes.png",
+      "labelColor": "#C26C2E"
+    },
+    {
+      "name": "如果每天都可以happy happy",
+      "sleeve": "tex/sleeve/如果每天都可以happy happy.png",
+      "record": "tex/record/如果每天都可以happy happy__art.png",
+      "recordStyles": {
+        "classic": "tex/record/如果每天都可以happy happy__classic.png",
+        "art": "tex/record/如果每天都可以happy happy__art.png",
+        "plain": "tex/record/如果每天都可以happy happy__plain.png"
+      },
+      "back": "tex/back/如果每天都可以happy happy.png",
+      "spine": "tex/spine/如果每天都可以happy happy.png",
+      "labelColor": "#8E5533"
+    },
+    {
+      "name": "玲子4.0",
+      "sleeve": "tex/sleeve/玲子4.0.png",
+      "record": "tex/record/玲子4.0__art.png",
+      "recordStyles": {
+        "classic": "tex/record/玲子4.0__classic.png",
+        "art": "tex/record/玲子4.0__art.png",
+        "plain": "tex/record/玲子4.0__plain.png"
+      },
+      "back": "tex/back/玲子4.0.png",
+      "spine": "tex/spine/玲子4.0.png",
+      "labelColor": "#3F8349"
+    }
+  ]
+}
