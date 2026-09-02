@@ -47,12 +47,18 @@
 /* 想换皮就改这里；不要去改下面的组件规则。 */
 :root {
   /* — 字色 ————————————————————————————————————————————
-   * 玻璃很薄，背后是暗沙滩，所以字是浅的。 */
-  --y2k-ink:         #EEF7FE;   /* 正文 / 标题 */
-  --y2k-ink-soft:    #B9D2E6;   /* 次要文字、元信息 */
-  --y2k-ink-faint:   #8AA6BE;   /* 占位、禁用 */
-  /* 浅字压在会变化的背景上，需要一点点阴影才站得住 */
-  --y2k-ink-shadow:  0 1px 2px rgba(6, 20, 36, .45);
+   * ⚠️ **出厂是深字。**（08-31 翻过来的，之前出厂是浅字）
+   * 场景是**明亮**的白沙滩，绝大多数 UI 压在上面都该是深字；浅字是**泡泡那一档的特例**。
+   * 翻过来的真正理由不是「哪个更常见」，而是：
+   * 不在窗口里、直接用 `.y2k` / `.y2k-glass` 的那些东西（向日葵那摞低语气泡就是）
+   * **拿不到任何 ink 类**，只能吃 :root 的值 —— 出厂是浅字的话它们就是
+   * 白字压在亮沙滩上，一个字都看不见（Iris 08-31：「向日葵那边的 ui 完全看不清」）。
+   * 出厂值要照顾的是**没人管的那一类**，不是最常见的那一类。 */
+  --y2k-ink:         #1E3A57;   /* 正文 / 标题 */
+  --y2k-ink-soft:    #40658A;   /* 次要文字、元信息 */
+  --y2k-ink-faint:   #6C8AA8;   /* 占位、禁用 */
+  /* 深字压在亮雾上，要的是一条极淡的白色「浮起」，不是黑影 */
+  --y2k-ink-shadow:  0 1px 0 rgba(255, 255, 255, .55);
 
   /* — 玻璃本体 · 默认值 ————————————————————————————————
    * ⚠️ 这一段是「玻璃」这套材质的默认值。另一套「泡泡」在第 1.5 节。
@@ -66,22 +72,40 @@
    * 所以这两个不是一条轴上的东西，别再把熏色当成「让字读得清」的旋钮 ——
    * 那是 --y2k-plate 的活。 */
   --y2k-shade:       rgba(6, 18, 38, 0);        /* 不压暗 */
-  --y2k-tint:        rgba(255, 255, 255, .10);
-  --y2k-tint-strong: rgba(255, 255, 255, .14);
+  /* 和 --y2k-plate-a 同一个道理：滑块写的是**原始量**，各档拿它去拼自己那层白。
+   * 泡泡要的白只有玻璃的三成，但它必须跟着同一根滑块动。 */
+  --y2k-tint-a:      .10;
+  --y2k-tint:        rgba(255, 255, 255, var(--y2k-tint-a));
+  --y2k-tint-strong: rgba(255, 255, 255, calc(var(--y2k-tint-a) + .04));
   --y2k-tint-hover:  rgba(255, 255, 255, .14);
   --y2k-tint-sunken: rgba(4, 14, 30, .22);      /* 凹陷区：往暗里走 */
   --y2k-core:        rgba(196, 232, 255, .20);  /* 内核发光：玻璃也留一点 */
   /* ⚠️ 模糊要**很轻**。重点是折射，不是磨砂 ——
    * 玻璃真正的可读性来自「边缘弯 + 中心清晰」的对比，糊上去只会把沙滩变成一团灰。
    * 没有折射的浏览器上这个值会被加重（见第 2.9 节），因为那时候只剩模糊可用了。 */
-  --y2k-blur:        blur(2.5px) saturate(1.55) brightness(1.02);
+  --y2k-blur:        blur(1px) saturate(1) brightness(1.02);
 
   /* 指针光斑：小而亮的一点，不是一大团。 */
+  /* 跟着鼠标走的那一点高光。面板上有「光斑强度 / 光斑大小」两根滑块。
+   * ⚠️ 这两个**只在这里声明一次**。以前泡泡档自己又写了一份（.16 / 120px），
+   * 于是滑块在泡泡上是哑的、而且切到泡泡就从小光点变成一大坨
+   * （Iris 09-01：「玻璃的时候我调过小光斑，改成泡泡又是大光斑了」）。
+   * 这已经是同一个坑的第四次了（plate / tint / radius / 现在这个）——
+   * **材质要覆盖某个令牌，就得从 :root 那份 calc 出来，不能自己写死一个数。**
+   * 这一对没有「泡泡该不一样」的理由，所以直接不覆盖，两档共用。 */
   --y2k-spec-a:      .40;
   --y2k-spec-r:      40px;
 
   /* 「文字垫底」：只垫在有字的那块（内容区），不是整块面板。
-   * 想更透但字要读得清，动这个，别去加白染色 —— 白染色是整块发乳的来源。 */
+   * 想更透但字要读得清，动这个，别去加白染色 —— 白染色是整块发乳的来源。
+   *
+   * ⚠️ **两个令牌，不是一个。** `--y2k-plate-a` 是那层白的透明度（一个纯数字），
+   * `--y2k-plate` 是拼好的颜色。深字档和泡泡档要各自换掉 --y2k-plate（白底 vs 暗底），
+   * 但**不能**把 --y2k-plate-a 也换掉 —— 滑块写在 :root 上，
+   * 一旦某个更深的元素自己重新声明了 --y2k-plate，那个元素的子树就再也读不到滑块的值了
+   * （自定义属性是按元素解析的）。所以滑块改的是 -a，各档拿 -a 去拼自己的颜色。
+   * 这个坑犯过一次：字色令牌就是这么失效的，见第 8 节开头那段。 */
+  --y2k-plate-a:     .18;
   --y2k-plate:       rgba(6, 20, 40, .03);
   --y2k-hair:        rgba(255, 255, 255, .22);  /* 分隔线 / 虚线的颜色 */
 
@@ -114,11 +138,20 @@
 
   /* — 尺寸与形状 ———————————————————————————————————————
    * liquid glass 的圆角比千禧年窗口大一圈 —— 那是「一块有厚度的玻璃」的形状。 */
-  --y2k-r:           22px;      /* 窗口圆角 */
+  /* ⚠️ 圆角也是「原始量 + 各档自己拼」的形状（同 --y2k-plate-a / --y2k-tint-a）。
+   * 滑块写 --y2k-r-base；泡泡要更圆，就在 base 上加，而不是自己写死一个 30px ——
+   * 写死的话「圆角」那根滑块在泡泡档上是哑的。 */
+  --y2k-r-base:      22px;
+  --y2k-r:           var(--y2k-r-base);   /* 窗口圆角 */
   --y2k-r-sm:        13px;      /* 控件圆角 */
   --y2k-r-xs:        8px;
   --y2k-gap:         12px;
   --y2k-pad:         16px;
+  /* 迷你播放器的三段留白，见第 5.1 节末尾。面板上有滑块。 */
+  --y2k-mini-pad:    10px;
+  --y2k-mini-lead:   6px;
+  --y2k-mini-gap:    10px;
+  --y2k-mini-btns:   6px;
   --y2k-card-w:      136px;     /* 网格卡片的最小列宽；窄屏在下面的媒体查询里放大 */
 
   /* — 阴影 ———————————————————————————————————————————— */
@@ -155,19 +188,21 @@
   --y2k-z:     900;             /* 弹窗层的基准 z-index */
 }
 
-/* ============================ 1.4 · 字色：浅字 / 深字 ============================ */
-/* 玻璃一旦「不压暗」（--y2k-shade: 0），面板就是一片**亮**的雾，
- * 这时候浅色的字压在亮沙、亮格纹垫子上会直接消失。
- * 材质换了极性，字也得跟着换 —— 亮面板配深字，那正好也是
- * 视觉参考/01_风格总调/ 里明日鼠和 supercat 的原味千禧感。
+/* ============================ 1.4 · 字色：深字 / 浅字 ============================ */
+/* **判据只有一条：面板整体比背景亮 → 深字；比背景暗 → 浅字。**
  *
- * 用法：ui.window({ ink: 'dark' })，或 win.setInk('dark' | 'light')。
- * 判断标准很简单：**面板整体比背景亮 → 深字；比背景暗 → 浅字。** */
+ * 玻璃档「不压暗」，是一片被照亮的雾 → 深字（也是 :root 的出厂值）。
+ * 泡泡档有熏色、字底下往暗里垫 → 比亮沙滩暗 → 浅字。
+ *
+ * 字色不用手动传：它写在 `MATERIALS[].ink` 里，跟着材质走（ui.js 第 2.5 节）。
+ * 要特例才显式传 `ui.window({ ink: 'light' })`，或 `win.setInk('light')`。
+ *
+ * 两个类都要写全，不能只写一个当「非默认」——
+ * 深字的窗口可能开在浅字的窗口上面，反过来也一样，谁都不能靠继承。 */
 .y2k-ink-dark {
   --y2k-ink:         #1E3A57;
   --y2k-ink-soft:    #40658A;
   --y2k-ink-faint:   #6C8AA8;
-  /* 深字压在亮雾上，要的是一条极淡的白色「浮起」阴影，不是黑影 */
   --y2k-ink-shadow:  0 1px 0 rgba(255, 255, 255, .55);
   --y2k-accent:      #2E7FC0;
   --y2k-accent-hi:   #185B94;
@@ -176,13 +211,29 @@
    * 深字要读得清，靠的不是把整块玻璃染白（那会发乳、也把折射盖掉），
    * 而是只在**要读字的那一块**垫一层白 —— 外面一圈照样薄。
    * iOS 也是这么分的：chrome 更透，承载内容的那块更实。 */
-  --y2k-plate:       rgba(255, 255, 255, .34);
+  --y2k-plate:       rgba(255, 255, 255, var(--y2k-plate-a));
   --y2k-rim-hi:      rgba(255, 255, 255, 1);
   --y2k-rim-lo:      rgba(120, 160, 195, .30);
   --y2k-hair:        rgba(40, 78, 112, .22);     /* 亮雾上的线要往深里走，白线看不见 */
   /* 亮面板上，行的 hover / 选中要往「更暗」走，不是更白 */
   --y2k-tint-hover:  rgba(30, 60, 92, .07);
   --y2k-tint-sunken: rgba(30, 60, 92, .10);
+}
+
+/* 浅字。给泡泡那一档，以及任何**自己比背景暗**的面板。 */
+.y2k-ink-light {
+  --y2k-ink:         #EEF7FE;
+  --y2k-ink-soft:    #B9D2E6;
+  --y2k-ink-faint:   #8AA6BE;
+  /* ⚠️ 浅字要的是**一圈halo**，不是一条投影。
+   * 一条向下的投影只在字的下边缘有用；泡泡几乎全透，背后是格纹垫子、笔电、鸡尾酒 ——
+   * 笔画的上边和左边照样贴着亮色，还是糊（Iris 08-31：「泡泡机的 ui 不太看得清」）。
+   * 三层同心的暗（0 偏移的实边 + 两圈晕）等于给每一笔描了一道边，字典型的字幕做法。
+   * 这条比「把面板垫暗」有效得多，而且**一点都不改面板的样子** —— 膜还是那层膜。 */
+  --y2k-ink-shadow:  0 0 4px rgba(4, 16, 34, .90),
+                     0 1px 3px rgba(4, 16, 34, .85),
+                     0 2px 12px rgba(4, 16, 34, .50);
+  --y2k-hair:        rgba(255, 255, 255, .22);
 }
 
 /* ============================ 1.5 · 另一套材质：泡泡 ============================ */
@@ -199,19 +250,23 @@
   /* 跟玻璃拉开的关键在这三行：几乎不熏、几乎不染、完全不糊。
    * 玻璃是「一块压在沙滩上的镜片」，泡泡是「一层膜」—— 后者应该几乎不存在。 */
   --y2k-shade:       rgba(12, 32, 58, .13);      /* 玻璃的三分之一 */
-  --y2k-tint:        rgba(255, 255, 255, .03);
-  --y2k-tint-strong: rgba(255, 255, 255, .05);
+  /* 泡泡的白 = 玻璃的三成。写成 calc 而不是写死 .03，
+   * 「白染色」那根滑块才管得到泡泡 —— 写死的话滑块在泡泡上是个哑的。 */
+  --y2k-tint:        rgba(255, 255, 255, calc(var(--y2k-tint-a) * .3));
+  --y2k-tint-strong: rgba(255, 255, 255, calc(var(--y2k-tint-a) * .3 + .02));
   --y2k-tint-hover:  rgba(255, 255, 255, .12);
   --y2k-tint-sunken: rgba(8, 24, 44, .18);
-  --y2k-spec-a:      .16;                        /* 泡膜反光更亮 */
-  --y2k-spec-r:      120px;
-  --y2k-plate:       rgba(6, 20, 40, .20);       /* 泡膜几乎不压暗，字底下要多垫一点 */
+  /* 泡膜几乎不压暗，字底下要多垫一点。往**暗**里垫 —— 配的是白字，见下面那段。 */
+  --y2k-plate:       rgba(6, 20, 40, calc(var(--y2k-plate-a) + .02));
 
-  /* 完全不模糊。泡膜是透明的，你能看清背后的每一根草。 */
-  --y2k-blur:        blur(0px) saturate(1.5) brightness(1.10);
+  /* 完全不模糊 —— 泡膜是透明的，你能看清背后的每一根草。
+   * ⚠️ 但 brightness 要**小于 1**。这一档配的是浅字，把背景提亮等于往白字底下打光，
+   * 原来那个 1.10 正好帮了倒忙。0.88 既是「稍微有点暗」那种感觉，也让白字站得住。 */
+  --y2k-blur:        blur(0px) saturate(1.45) brightness(.88);
   /* 内核发光：中间一团很淡的光，从身体里透出来（宪法 1.5 节的「内核发光体」）。
    * 顺带把字托住 —— 泡膜几乎不压暗，全靠这团光给中间一点底。 */
-  --y2k-core:        rgba(200, 234, 255, .17);
+  /* 内核光收一半：它正好亮在面板中间 —— 也正好是正文所在的地方。 */
+  --y2k-core:        rgba(200, 234, 255, .10);
 
   /* 皂膜虹彩：边缘那圈不是白的，是粉—青—金在转。
    * 这是泡泡跟玻璃最大的区别，也是「薄膜干涉」的样子。 */
@@ -221,7 +276,7 @@
   --y2k-rim-warm:    rgba(255, 190, 228, .82);
   --y2k-rim-lo:      rgba(206, 190, 255, .38);
 
-  --y2k-r:           30px;      /* 泡泡更圆 */
+  --y2k-r:           calc(var(--y2k-r-base) + 8px);   /* 泡泡更圆，但跟着滑块走 */
   --y2k-r-sm:        18px;
 
   /* 自己在发光，而不是被照亮（宪法 1.5 节） */
@@ -235,6 +290,22 @@
                      inset 0 0 34px -10px rgba(158, 240, 255, .34),
                      inset 0 30px 50px -30px rgba(255, 255, 255, .30);
 }
+
+/* ⚠️ **泡泡配浅字，不是深字。**（08-31 走了一个来回，记下来别再翻回去）
+ *
+ * 第 1.4 节那条判据是：面板整体比背景亮 → 深字，比背景暗 → 浅字。
+ * 玻璃档「不压暗」，是一片被照亮的雾 → 深字。
+ * 泡泡档有 13% 的熏色、字底下还往暗里垫 → **它比亮沙滩暗**，所以要浅字。
+ * 泡泡刚做出来的时候本来就是配浅字的，后来全站默认改成深字，这一档被顺手带跑了，
+ * 才有了「深蓝的字压在深蓝的垫子上」——  Iris 说的「有点黑看不清」。
+ *
+ * 走过的弯路：当时是把泡泡**洗白**去迁就深字（白垫子 + 白纱熏色 + 标题栏也垫白）。
+ * 字确实看得清了，但泡泡比薄片和出厂还亮，「膜」的感觉全没了 —— Iris 当场否掉。
+ * **可读性有两条路，先选对极性，再谈垫多少：**
+ *   暗面板 + 浅字（泡泡走这条）   亮面板 + 深字（玻璃走这条）
+ * 挑错了极性，之后怎么垫都是在把材质往另一头拉。
+ *
+ * 实现在 ui.js 的 MATERIALS[].ink —— 换材质会连字色一起换，不用手动传 ink。 */
 
 /* 泡泡外面那圈光晕 —— 它自己在发光。
  * 落影几乎去掉：影子代表重量，而泡泡不该有重量。这是它和玻璃在观感上分开的最后一步。 */
@@ -356,12 +427,8 @@
  *   blur     只有 backdrop-filter：加重模糊补偿「不会弯」，边缘光照常画
  *   flat     连 backdrop-filter 都没有：半透明底色 + 边缘光
  * 判断标准：降级版单独看也应该是好的，不该一眼看出它是降级。 */
-[data-y2k-tier="blur"] {
-  /* 没有折射就没有「边缘弯、中心清」的对比，玻璃会显得薄得没东西。
-   * 补偿方式是**加厚模糊 + 多提一点饱和**（不是加白染色 —— 那会发乳）。 */
-  --y2k-blur:        blur(9px) saturate(1.9) brightness(1.03);
-  --y2k-rim-a:       1.15;
-}
+/* 折射已停用，三档现在只差「有没有 backdrop-filter」这一件事，
+ * 所以 refract 和 blur 两档长得完全一样，不用再给 blur 档做补偿。 */
 [data-y2k-tier="flat"] {
   /* 透不过去的话，薄玻璃就只是一层灰纱，字全糊了。
    * 这时候退回一块**实心的浅色板** —— 场景是亮的，所以往白里退，不是往黑里退。 */
@@ -406,16 +473,35 @@
 
 /* ============================ 3 · 遮罩 ============================ */
 /* 只压一点点、**不模糊** —— 背后的场景要留给窗口的玻璃去折射。 */
+/* ⚠️⚠️ **遮罩上绝对不能挂 opacity 动画。**（2026-08-31，查了七轮才找到）
+ *
+ * 这里原来是 `animation: y2k-fade ... both`，y2k-fade 动的是 opacity。
+ * 在 Chromium 里，一个带 opacity 动画（而且 fill 是 both，效果永远在）的元素会成为
+ * **backdrop root** —— 它里面的元素做 backdrop-filter 时，"背景"只算**它内部**画的东西。
+ * 而遮罩里除了窗口什么都没有，于是窗口的背景是**空的**：
+ * blur 20px 糊了个寂寞，页面照常从透明的地方透过来，看上去就是「模糊完全没反应」。
+ *
+ * 最毒的地方是它**不报错、计算值全对**：getComputedStyle 查出来
+ * backdrop-filter: blur(20px) 一字不差，就是不生效。
+ * 判定方法：在 body 上放一个同样 blur 的裸 div 做对照 —— 裸的糊、窗口的不糊，
+ * 就是这个。把这条 animation 摘掉，同一帧窗口就糊了。
+ *
+ * 所以入场淡入改挂到 ::before 上（它只是那层底色，不含窗口），
+ * 遮罩本身一个会创建 backdrop root 的属性都不许有：
+ * 不要 opacity 动画、不要 filter、不要 transform、不要 will-change。 */
 .y2k-scrim {
   position: fixed; inset: 0;
   z-index: var(--y2k-z);
   display: grid; place-items: center;
   padding: 4vmin;
+}
+.y2k-scrim::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background: radial-gradient(120% 90% at 50% 50%,
     rgba(6, 16, 30, .18) 0%, var(--y2k-scrim) 100%);
   animation: y2k-fade var(--y2k-base) var(--y2k-ease) both;
 }
-.y2k-scrim.is-closing { animation: y2k-fade var(--y2k-fast) var(--y2k-ease) reverse both; }
+.y2k-scrim.is-closing::before { animation: y2k-fade var(--y2k-fast) var(--y2k-ease) reverse both; }
 
 @keyframes y2k-fade { from { opacity: 0 } to { opacity: 1 } }
 
@@ -475,6 +561,44 @@
 .y2k-titlebar:active { cursor: grabbing; }
 .y2k-titlebar.is-static { cursor: default; }
 
+/* ============================ 5.1 · 小窗口（compact） ============================
+ * `ui.window({ compact: true })`。给那种只有一两行内容的常驻小窗（迷你播放器就是）。
+ *
+ * 小窗口挤，挤的不是内容 —— 是**上下那两条白**：
+ * 标题栏 40px + 页脚 11px 上下留白，在一个 120px 高的窗口里占掉了一半，
+ * 中间真正要放东西的地方就只剩一条缝（Iris 2026-08-31：「把上下那个白白的缩短」）。
+ * 所以 compact 干两件事：**把 chrome 压薄，把内容区的留白放开。** */
+.y2k-window--compact > .y2k-titlebar {
+  height: 26px;
+  padding: 0 6px 0 10px;
+  gap: 7px;
+}
+.y2k-window--compact .y2k-titlebar__title { font-size: 9.5px; letter-spacing: .16em; }
+.y2k-window--compact .y2k-titlebar__sub   { font-size: 9px; }
+.y2k-window--compact .y2k-titlebar__grip  { display: none; }   /* 26px 里塞不下抓手 */
+.y2k-window--compact > .y2k-window__footer { padding: 6px var(--y2k-pad); }
+/* 省下来的高度还给内容 */
+.y2k-window--compact .y2k-window__body { padding: 2px 0; }
+.y2k-window--compact .y2k-section { padding: 10px var(--y2k-pad); gap: 9px; }
+
+/* 迷你播放器那一小块的留白。三个数都在「✦ 视觉参数」里有滑块 ——
+ * 这种「差两三个像素就觉得挤」的东西，靠对话来回调是调不出来的，得当场拖。
+ *   线上 = 歌名和那条分隔线之间     线下 = 分隔线和三颗键之间     键距 = 键与键之间
+ * 用法：外面套 .y2k-mini，里面两块分别是 .y2k-mini__info / .y2k-mini__keys。 */
+.y2k-mini      { padding: var(--y2k-mini-pad); }
+/* ⚠️ 选择器要写成 `.y2k-row.y2k-mini__info` 两个类连写。
+ * 单写 .y2k-mini__info 和 .y2k-row 是**同一个优先级**（0,1,0），
+ * 而 .y2k-row 写在这后面几百行 —— 后写的赢，于是「小窗·线上」那根滑块拖了没反应
+ * （Iris 09-01 报的）。这和「自定义属性只能声明一处」是同一类问题的另一半：
+ * 那半是变量被更深的元素盖掉，这半是规则被同优先级的后来者盖掉。 */
+.y2k-row.y2k-mini__info { padding: 0 0 var(--y2k-mini-lead); gap: 8px; min-width: 0; }
+.y2k-row.y2k-mini__info:hover { padding-left: 12px; }
+.y2k-mini__keys {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--y2k-mini-btns);
+  padding-top: var(--y2k-mini-gap);
+}
+
 /* 标题栏左边那三条小横线：Y2K 窗口的抓手 */
 .y2k-titlebar__grip {
   flex: none; width: 13px; height: 9px;
@@ -528,6 +652,9 @@
 /* 窗口主体。
  * 内容区比 chrome（标题栏 / 页脚）稍微厚一点点 —— 那里要读字。
  * iOS 也是这么分的：外面一圈更透，中间承载内容的那块更实。 */
+/* 内容不做内缩（Iris 2026-08-31：「内容内缩我不需要，不要任何内缩」）。
+ * 那根滑块本来是为了让折射的弯折带露出来 —— 弯折带现在只占最外面一小圈，
+ * 内容压上去也不打架，所以内缩没有存在的理由了。 */
 .y2k-window__body {
   flex: 1 1 auto; min-height: 0;
   display: flex; flex-direction: column;
@@ -847,18 +974,9 @@
   object-fit: cover;
   display: block;
 }
-/* 封面上一道固定角度的白色斜光条 —— 宪法 1.5 节的「手绘高光条」，
- * 不跟随光源，纯粹是「可爱」的来源。 */
-.y2k-card__art::after {
-  content: "";
-  position: absolute; inset: 0;
-  pointer-events: none;
-  background: linear-gradient(118deg,
-    transparent 0 40%,
-    rgba(255, 255, 255, .20) 42%,
-    rgba(255, 255, 255, .05) 46%,
-    transparent 47% 100%);
-}
+/* 这里以前有一道固定角度的白色斜光条（宪法 1.5 节的「手绘高光条」）。
+ * **已删**（Iris 2026-08-31）：那是给通透的冰晶类物件准备的语言，
+ * 压在专辑封面这种「实体类」的图片上，看着就是每张封面上都糊了一道白。 */
 
 .y2k-card__label {
   display: block;
@@ -1462,6 +1580,66 @@
 .y2k-cam__stage.is-video { cursor: default; }
 
 /* 幻灯机换片那一下的白。平时完全透明，只有 flash 那一档用得上。 */
+/* ============================ 14.71 · 「只看玻璃」（调试用） ============================
+ * 真实窗口里内容几乎占满，能看见玻璃的只有边上一圈 —— 弯了也容易被当成没弯。
+ * 勾上之后把弹窗里所有不透明的东西临时藏掉，只剩那块玻璃压在沙滩上，
+ * 「到底有没有折射」一眼就有答案。UI 参数面板上那个复选框控制它。 */
+.y2k-peek .y2k-window__body > *,
+.y2k-peek .y2k-window__footer > *,
+.y2k-peek .y2k-titlebar > * { opacity: 0 !important; }
+.y2k-peek .y2k-window__body,
+.y2k-peek .y2k-window__footer { background: none !important; }
+
+/* ============================ 14.72 · 装了别人网站的窗口 ============================
+ * `.has-frame` 由 ui.js 的 setView 自动加：内容里有 <iframe> 就加上。
+ *
+ * 两条理由，第二条是真 bug：
+ *   1. 那是**别人的页面**，我们没有权利往它上面糊一层白 ——
+ *      「垫底」那半透明白正好压在人家的排版上（Iris 08-31 看到的中间那个框）。
+ *   2. Safari / Firefox 上 -webkit-backdrop-filter 会把**自己的子元素**也糊掉
+ *      （Chromium 不会）。所以在外面的浏览器里整个 a-cocktail 都是模糊的，
+ *      在 localhost（Chrome）里却清清楚楚。不是那个站的问题，是这层玻璃的问题。
+ *
+ * 所以这种窗口只保留「一个框 + 标题栏 + 落影」，玻璃那一套全关。 */
+.y2k-window.has-frame {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: linear-gradient(180deg, rgba(246, 251, 255, .96), rgba(232, 243, 252, .97));
+}
+.y2k-window.has-frame .y2k-window__body { background: none; }
+/* ⚠️ 这种窗口的底板是**近乎不透明的浅色**（上面那条 background），
+ * 所以不管当前材质是什么，字都得是深的 —— 泡泡档配的是浅字，
+ * 白字压在这块浅底板上一个都看不见（Iris 08-31：「acocktail 整个都是白的」）。
+ * 按 1.4 节那条判据：面板比背景亮 → 深字，这里永远成立，所以写死。 */
+.y2k-window.has-frame,
+.y2k-window.has-frame > .y2k-titlebar,
+.y2k-window.has-frame > .y2k-window__footer {
+  --y2k-ink:         #1E3A57;
+  --y2k-ink-soft:    #40658A;
+  --y2k-ink-faint:   #6C8AA8;
+  --y2k-ink-shadow:  none;
+  --y2k-hair:        rgba(40, 78, 112, .22);
+  color: var(--y2k-ink);
+  text-shadow: none;
+}
+/* 底板是浅的，chrome 上那层白就等于没有 —— 换成一条极淡的分隔和一点点冷色 */
+.y2k-window.has-frame > .y2k-titlebar {
+  background: rgba(232, 243, 252, .9);
+  box-shadow: inset 0 -1px 0 rgba(40, 78, 112, .12);
+}
+.y2k-window.has-frame > .y2k-window__footer {
+  background: rgba(232, 243, 252, .9);
+  box-shadow: inset 0 1px 0 rgba(40, 78, 112, .12);
+}
+/* ghost 按钮在浅底板上是白底白字。给它一条实线边，才看得出是个按钮。 */
+.y2k-window.has-frame .y2k-btn {
+  background: rgba(255, 255, 255, .85);
+  box-shadow: inset 0 0 0 1px rgba(40, 78, 112, .28);
+}
+/* 折射边默认盖在内容之上（z-index 3），压在别人的网页上很脏 —— 收到框底下 */
+.y2k-window.has-frame::before { z-index: 0; }
+.y2k-window.has-frame::after  { display: none; }   /* 颗粒 */
+
 /* ============================ 14.75 · 翻开之后：脱掉窗口 ============================
  * 玻璃窗口在主页上是对的 —— 那是「一块放在沙滩上的东西」。
  * 但翻开之后再套一个框，就变成「在一个软件里看照片」了。
@@ -1481,8 +1659,22 @@
 .y2k-window.is-bare::after,                 /* 颗粒 */
 .y2k-window.is-bare > .y2k-titlebar { display: none; }
 .y2k-window.is-bare .y2k-window__body { background: none; }
-/* 说明文字直接压在沙滩上，得给一点点影子才站得住 */
-.y2k-window.is-bare .y2k-cam__meta { text-shadow: 0 1px 6px rgba(255, 255, 255, .55); }
+/* ⚠️ 脱了窗口 = 直接压在**亮沙滩**上，所以字永远是深的，跟当前材质无关
+ * （泡泡档配的是浅字，白字压在白沙上等于没有）。同 has-frame 那条。 */
+.y2k-window.is-bare {
+  --y2k-ink:         #1E3A57;
+  --y2k-ink-soft:    #33587C;
+  --y2k-ink-faint:   #6C8AA8;
+  color: var(--y2k-ink);
+}
+/* 说明文字直接压在沙滩上，得给一圈白才站得住。
+ * 一层影子不够 —— 沙滩本身也是白的，白字影和白沙分不开；
+ * 三层同心的白（0 偏移 + 两圈晕）等于给字描了一道边，在花的背景上也读得清。 */
+.y2k-window.is-bare .y2k-cam__meta {
+  text-shadow: 0 0 1px rgba(255, 255, 255, .95),
+               0 1px 4px rgba(255, 255, 255, .85),
+               0 2px 10px rgba(255, 255, 255, .7);
+}
 
 .y2k-window.is-bare .y2k-window__footer {
   background: none;
@@ -1528,6 +1720,11 @@
  *   正面 = 当前跨页的右半；背面 = 下一跨页的左半（转过去正好落在左页上）。
  * 底下垫着一块「拼接页」：左 = 当前的左半（一直不动），右 = 下一页的右半
  * （随着这一页掀起来慢慢露出来）。 */
+/* 翻页时长。⚠️ 和 相册.js 的 FLIP_MS 必须一致（那边拿它做兜底定时器）。
+ * 08-31 从 760ms 调到 600ms（Iris：再快一点点）。别往 500 以下调 ——
+ * 再快就盖过下面那条 acos 时间曲线，新的一页会显得是「突然出现」的。 */
+:root { --y2k-flip-t: 600ms; }
+
 .y2k-fliplayer { position: absolute; inset: 0; z-index: 5; }
 .y2k-flipbase  { position: absolute; inset: 0; display: flex; }
 
@@ -1535,7 +1732,7 @@
   position: absolute; top: 0; left: 50%;
   transform-style: preserve-3d;
   transform-origin: left center;          /* ← 中轴 = 书脊 */
-  animation: y2k-flip-f 760ms linear backwards;
+  animation: y2k-flip-f var(--y2k-flip-t) linear backwards;
 }
 .y2k-flip[data-dir="b"] { animation-name: y2k-flip-b; }
 .y2k-flip__face {
@@ -1543,29 +1740,18 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   overflow: hidden;
-  animation: y2k-flip-lit-front 760ms linear backwards;
+  animation: y2k-flip-lit-front var(--y2k-flip-t) linear backwards;
 }
 /* 背面要先转过去 180°，转到最后它才是正对着人的那一面 */
 .y2k-flip__face.is-back { transform: rotateY(180deg); animation-name: y2k-flip-lit-back; }
 
-/* 翻起来的那一页在底下投的影：0→90° 落在右页上、90→180° 落在左页上。
- * 有了它才有「一张纸浮在另一张纸上面」的层次；没有它就只是一张图在转。 */
-.y2k-flipshade {
-  position: absolute; top: 0; bottom: 0; width: 50%;
-  pointer-events: none; opacity: 0;
-  animation: 760ms linear backwards;
-}
-.y2k-flipshade.is-right {
-  left: 50%;
-  background: linear-gradient(90deg, rgba(6,16,30,.5), rgba(6,16,30,0) 62%);
-  animation-name: y2k-flip-shade-r;
-}
-.y2k-flipshade.is-left {
-  left: 0;
-  background: linear-gradient(270deg, rgba(6,16,30,.42), rgba(6,16,30,0) 62%);
-  animation-name: y2k-flip-shade-l;
-}
-.y2k-flip[data-dir="b"] ~ .y2k-flipbase .y2k-flipshade { animation-direction: reverse; }
+/* ⚠️ **翻页的投影已经删掉了**（Iris 2026-08-31：「除了照片，外面还有一个框在跟着一起加阴影」）。
+ *
+ * 原来是两块「半个舞台那么大」的渐变（.y2k-flipshade），模拟纸落在纸上的阴影。
+ * 那个前提是**有纸**。这本相册是「裸叠」—— 页面上除了照片什么都没有，
+ * 照片周围是沙滩，于是那块渐变就是一个横跨半屏的**深色矩形**在跟着翻页明灭。
+ * 立体感现在由两样东西给：转起来那一面的 brightness 打光 + 照片自己的 box-shadow。
+ * 想把投影加回来的话，它必须**只落在照片上**，不能落在页面矩形上。 */
 
 /* ⚠️ 角度的时间曲线是**算出来的**，不是随手挑的贝塞尔。
  *
@@ -1692,7 +1878,9 @@
   margin: 4px 0 0;
   display: flex; align-items: center; justify-content: center; gap: 4px;
   font-family: var(--y2k-mono); font-size: 12.5px; letter-spacing: .12em;
-  color: var(--y2k-ink-soft);
+  /* 用正文色而不是 ink-soft：这一行是照片**唯一**的说明，不是次要信息，
+   * 而且它压在亮沙滩上（is-bare），弱一档就直接糊了。 */
+  color: var(--y2k-ink); font-weight: 500;
 }
 /* 自己画的定位符号（相册.js 的 pin()）。跟着 currentColor 和字号走，
  * 所以换字色、换字号都不用管它 —— 这是它比 📍 强的全部理由。 */

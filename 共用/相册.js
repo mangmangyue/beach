@@ -60,36 +60,42 @@
  * 整理模式（临时）
  *
  * 主页上每格右上角一个 ×，点一下淘汰、再点恢复；单张里按 D 也行。
- * 淘汰**不删文件**，只记 localStorage。挑完「复制保留清单」→ 盖掉 photos.json
+ * 淘汰**不删文件**，只记 localStorage。挑完「复制保留清单」→ 盖掉 照片/清单.json
  * → 跑 `导入照片.py --prune` 清掉没用上的生成文件。定稿后把 CURATE 改成 false。
  */
-import { ui, h, registerOption } from './ui.js';
+import { ui, h, registerOption, DEV } from './ui.js';
 
 const ROOT = new URL('../', import.meta.url);
 const DATA = new URL('照片/清单.json', ROOT);
 const LS_REJECT = 'y2k-photo-rejects';
-const CURATE = true;               // 定稿后改成 false
+/* 整理模式跟着 DEV 走（ui.js 第 4.8 节：localhost / ?dev=1 / localStorage y2k-dev=1）。
+ * ⚠️ 原来是一个「定稿后改成 false」的常量 —— 那种常量的结局一定是忘了改，
+ * 然后访客在线上看到「淘汰 / 复制保留清单」。跟着 DEV 走的话**部署出去自动就是关的**，
+ * 而 Iris 在自己电脑上照旧能整理。 */
+const CURATE = DEV;
 
 /* 窗口尺寸：能多大多大，但留一点边让沙滩透出来 —— 它还是浮在那个世界上的一块玻璃。
  * 上限是给 27 寸屏定的，再大照片也不会更清楚（长边 2400）。 */
-const WIN_MAX_W = 1360, WIN_MAX_H = 900;
-
-/* 主页长什么样。选定之后把这些值改掉、再把没选中的分支删掉即可。 */
-const LAYOUTS = { grid: '网格', rows: '一行一个' };
-const PILES = {
-  bare:  '裸叠',        // 没有边，只有落影，微微歪着
-  depth: '景深 · 向右', // 往右递进 —— 右边那些就是之后的照片
+/* ⚠️ **主页和翻开之后是两个尺寸。**（Iris 09-01：「照片可以大，但摄影集那个窗口太大了」）
+ *
+ * 翻开之后窗口是**脱掉**的（is-bare）—— 看到的只有照片本身，所以越大越好，
+ * 上限只受原图分辨率限制：照片长边 2400，而这是 CSS 像素，
+ * 2 倍屏上 1600 CSS px 就要 3200 设备像素了，再大只能靠放大补，照片会发软。
+ * 真要更大得先把 导入照片.py 的长边调上去重跑一遍。
+ *
+ * 主页那一层看到的是**一块玻璃面板**，不是照片。面板铺满整个屏幕就成了一个
+ * 全屏的相册 app，而它本该是「放在那片沙滩上的一样东西」—— 得看得见它压在沙滩上。
+ * 所以主页给一个明显更小的上限，七叠照片正好排三列。 */
+const WIN_MAX = {
+  home: { w: 1060, h: 860 },     // 主页：一块压在沙滩上的板子（三列 × 三行正好放得下）
+  one:  { w: 1600, h: 1000 },    // 翻开：能多大多大，只剩照片
 };
-const HOME = 'stack';              // 'film' | 'stack' | 'cover'
-const LAYOUT = 'grid';
-const PILE = 'bare';
-const LS_HOME = 'y2k-photo-home';
-const LS_PILE = 'y2k-photo-pile';
-const LS_LAYOUT = 'y2k-photo-layout';
+
+/* 主页已定稿（Iris 08-31）：**叠放 + 网格 + 裸叠**，不再是选项。
+ * 「胶片 / 封面」两种主页、「一行一个」排布、「景深·向右」叠法都已删干净 ——
+ * 留着没被选中的分支只会让下一个读这个文件的人以为它们还在候选里。 */
 const LS_TURN = 'y2k-photo-turn';
-/* 一叠里露几张。往右铺的时候露多一点才看得出「后面还有」；
- * 网格里一格塞不下那么多，所以按排布分开给。 */
-const PILE_N = { grid: 4, rows: 5 };
+const PILE_N = 4;                  // 一叠里露几张
 
 /* 翻页动画。
  * ⚠️ 关键在于**两层图**：舞台里有两个 <img>，旧的那张不马上撤，新的压在上面。
@@ -101,6 +107,12 @@ const PILE_N = { grid: 4, rows: 5 };
  *   翻书 —— 捏住右页绕**中间的书脊**翻过去，背面就是下一跨页的左半
  * 淡入删了：它中间必然露出沙滩背景，那是它的定义不是参数没调好。
  * 直切 / 推移 / 走片 / 翻页 / 缩放 / 横扫 / 闪白都已淘汰。 */
+/* ⚠️ 翻页时长写在两个地方，必须一致：
+ * 这里（兜底定时器用）和 ui.css 的 `--y2k-flip-t`（动画本身用）。
+ * 08-31 从 760 调到 600 —— Iris：「翻页速度再稍微调快一点点」。
+ * 再快就会盖过那条 acos 时间曲线（新的一页出现得太突然），别往 500 以下调。 */
+const FLIP_MS = 600;
+
 const TURNS = {
   dissolve: { label: '叠化' },
   book:     { label: '翻书' },
@@ -217,8 +229,13 @@ async function load() {
                                date: normDate(row.date), photos: [] });
         }
         const a = byPlace.get(place);
+        if (row.city) a.city = row.city;
         const where = spotPlace(row.spot, place);
-        for (const p of row.photos) a.photos.push({ ...p, place: where });
+        /* ⚠️ 照片自己写了 place 就用它自己的。
+         * 「复制保留清单」导出的是**已经合并过**的格式（相册一层 + 每张照片自带小地名），
+         * 把它贴回来的时候如果还照 row.spot 重算，Diamond Head·Hawaii 会被压成 Hawaii ——
+         * 导出再导入一次地名就掉了一层。要能原样吃回自己吐出来的东西。 */
+        for (const p of row.photos) a.photos.push({ ...p, place: p.place || where });
       }
       const list = [...byPlace.values()];
 
@@ -271,9 +288,6 @@ function opt(id, tag, key, options, fallback) {
     },
   });
 }
-opt('photo-home',   '相册主页', LS_HOME,   { film: '胶片', stack: '叠放', cover: '封面' }, HOME);
-opt('photo-layout', '排布',     LS_LAYOUT, LAYOUTS, LAYOUT);
-opt('photo-pile',   '叠法',     LS_PILE,   PILES,   PILE);
 opt('photo-turn',   '翻页',     LS_TURN,   TURNS_L, 'book');
 
 /* --------------------------------------------------------------------------
@@ -287,7 +301,7 @@ export function openGallery() {
   /* ⚠️ 不接 width / height。相册的尺寸按视口算（见 sizeWindow），
    * constitution.js 的 galW / galH 对它不起作用。 */
   const win = ui.window({
-    title: '照片', sub: 'PHOTOS',
+    title: '摄影集', sub: '',
     fixedHeight: true, keepAlive: true,
     closeOnEsc: false,        // Esc 整个由下面那个 keydown 接管，见那里的说明
   });
@@ -299,10 +313,7 @@ export function openGallery() {
    * 换地方必须退回主页。这一本里翻到第几页记在下面的 si 上。 */
   let albums = [], ai = 0;
   let view = 'home';                 // 'home' | 'one'
-  let home   = pick(LS_HOME,   { film: 1, stack: 1, cover: 1 }, HOME);
   let turn   = pick(LS_TURN,   TURNS,   'book');
-  let pile   = pick(LS_PILE,   PILES,   PILE);
-  let layout = pick(LS_LAYOUT, LAYOUTS, LAYOUT);
   let curating = false;
   const rejects = loadRejects();
 
@@ -331,13 +342,6 @@ export function openGallery() {
   const count   = h('p.y2k-cam__count');
   const tally   = ui.note('');
 
-  const homeSel = seg('主页', ['film', 'stack', 'cover'],
-    { film: '胶片', stack: '叠放', cover: '封面' },
-    () => home, v => { home = v; save(LS_HOME, v); showHome(false); });
-  const laySel = seg('排布', Object.keys(LAYOUTS), LAYOUTS,
-    () => layout, v => { layout = v; save(LS_LAYOUT, v); showHome(false); });
-  const pileSel = seg('叠法', Object.keys(PILES), PILES,
-    () => pile, v => { pile = v; save(LS_PILE, v); showHome(false); });
   const turnSel = seg('翻页', Object.keys(TURNS),
     Object.fromEntries(Object.entries(TURNS).map(([k, v]) => [k, v.label])),
     () => turn, v => { turn = v; save(LS_TURN, v); turnSel.sync(); });
@@ -365,8 +369,9 @@ export function openGallery() {
     const cs = getComputedStyle(scrim);
     const w = scrim.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     const hh = scrim.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    win.win.style.setProperty('--y2k-w', Math.min(WIN_MAX_W, w) + 'px');
-    win.win.style.setProperty('--y2k-h', Math.min(WIN_MAX_H, hh) + 'px');
+    const cap = WIN_MAX[view] || WIN_MAX.one;
+    win.win.style.setProperty('--y2k-w', Math.min(cap.w, w) + 'px');
+    win.win.style.setProperty('--y2k-h', Math.min(cap.h, hh) + 'px');
   }
   /* ⚠️ 用 ResizeObserver 盯遮罩，不要只在 open 的那一刻算一次。
    * 开窗那一帧视口不一定已经是最终尺寸（页面还在加载 / 窗口正在被拖动），
@@ -395,6 +400,12 @@ export function openGallery() {
 
   function open(a, k) {
     ai = albums.indexOf(a);
+    /* ⚠️ 换一本相册 = **重新打开**，不是「从上一本翻过来」。
+     * 不清掉 shown 的话，翻书会拿上一本的最后一页当正面翻过去 ——
+     * 看上去像两个地方被装订在同一本书里，很怪（Iris 08-31 报的）。
+     * fresh 让这一次落页不放任何动画，直接就在那儿。 */
+    shown = [];
+    fresh = true;
     /* 从缩略图点进来时给的是「第几张照片」，要换算成「第几页」——
      * 书模式下两张竖图共一页，两个数不是一回事。 */
     si = 0;
@@ -405,31 +416,13 @@ export function openGallery() {
     showOne(); paint();
   }
 
-  /* ---- ① 胶片：一卷 35mm ---- */
-  function filmRoll(a) {
-    const ps = shots(a);
-    const frames = ps.map((p, k) => h('button.y2k-film__frame' +
-      (rejects.has(p.src) ? '.is-dead' : ''), {
-      type: 'button',
-      style: { width: Math.round(((p.w || 3) / (p.h || 2)) * 122) + 'px' },
-      onclick: () => open(a, k),
-    }, h('img', { src: thumbOf(p), alt: p.caption || '',
-                  loading: 'lazy', decoding: 'async' }), vidBadge(p), killX(p)));
-    return h('section.y2k-film',
-      h('div.y2k-film__holes'),
-      h('div.y2k-film__frames', frames),
-      h('div.y2k-film__holes'),
-      h('div.y2k-film__edge', h('b', (a.city || a.id).toUpperCase()), h('span', a.date || '')),
-    );
-  }
-
-  /* ---- ② 叠放：一叠照片摞在那儿 ---- */
+  /* ---- 主页：一叠照片摞在那儿（定稿：网格 + 裸叠） ---- */
   const TILT = [-4.2, 3.4, -2.4, 4.6, -3.1, 2.2];
   function stackPile(a) {
-    const n = PILE_N[layout];
+    const n = PILE_N;
     const ps = shots(a).slice(0, n);
     const k = albums.indexOf(a);
-    return h('button.y2k-pile.y2k-pile--' + pile, { type: 'button', onclick: () => open(a, 0) },
+    return h('button.y2k-pile.y2k-pile--bare', { type: 'button', onclick: () => open(a, 0) },
       /* 最上面那张要最后画（DOM 里在后面 = 压在上面），所以倒着铺。
        * --i 是「从上往下第几张」，位移旋转全交给 CSS 算；
        * --nmax 是常量不是实际张数，这样一行一个时几行地名能对齐。 */
@@ -450,42 +443,21 @@ export function openGallery() {
     );
   }
 
-  /* ---- ③ 封面：一个地方一张 ---- */
-  function coverCard(a) {
-    const p = shots(a)[0];
-    if (!p) return null;
-    return h('button.y2k-cover', {
-      type: 'button',
-      style: { aspectRatio: '3 / 2' },     // 统一比例，理由见 ui.css 里那一段
-      onclick: () => open(a, 0),
-    },
-      h('img', { src: thumbOf(p), alt: '', loading: 'lazy', decoding: 'async' }),
-      h('div.y2k-cover__label', h('b', a.city || a.id), h('span', a.date || '')),
-    );
-  }
-
   function buildHome() {
     const alive = albums.filter(a => shots(a).length);
-    if (home === 'film') {
-      ui.fill(feed, h('div.y2k-cam__rolls-v', alive.map(filmRoll)));
-    } else if (home === 'stack') {
-      ui.fill(feed, h('div.y2k-cam__piles.is-' + layout, alive.map(stackPile)));
-    } else {
-      ui.fill(feed, h('div.y2k-cam__covers', alive.map(coverCard).filter(Boolean)));
-    }
+    ui.fill(feed, h('div.y2k-cam__piles.is-grid', alive.map(stackPile)));
   }
 
   function showHome(keepPos) {
     view = 'home';
+    sizeWindow();          // 两个视图两个上限，切过去要重新量
     win.win.classList.remove('is-bare', 'is-idle');
     clearTimeout(idleOne);
     video.pause();
-    win.setTitle('照片', albums.length + ' 个地方');
+    win.setTitle('摄影集', '');
     buildHome();
     win.setView(feed);
     win.setFooter(
-      homeSel.el,
-      ...(home === 'stack' ? [laySel.el, pileSel.el] : []),
       ui.spacer(),
       ...(curating ? [tally, copyBtn] : []),
       ...(CURATE ? [curBtn] : []),
@@ -515,12 +487,31 @@ export function openGallery() {
    * 横图自己占满一整个跨页（横跨装订线），这是真相册里常见的通版，
    * 而且**横图一点没变小** —— 它本来就占满整个窗口。
    * 让横图只占半页的话，你大部分照片会缩水一半，那不是这个版式该付的代价。 */
+  /* ⚠️ 竖图配对会**往后找**，不只看紧挨着的下一张。
+   *
+   * 原来只配「相邻」的两张竖图。可实际拍的时候横竖是穿插着的
+   * （苔寺 19 张里 10 竖 9 横，几乎每张竖图旁边都是横图），
+   * 结果一半竖图落单、各自占一个跨页 —— 一张竖图摊在整个跨页上，
+   * 中间那条装订线正好从它身上穿过去，Iris 08-31：「竖着的照片没有合在一起」。
+   *
+   * 现在遇到一张落单的竖图就**往后把下一张竖图提上来**跟它配成一对。
+   * 代价是照片的先后顺序会变（被提上来的那张早出现了几页），
+   * 换来的是**所有竖图都是两两并排**，也就是这个版式本来的样子。
+   * 横图之间的先后顺序一点没变，竖图之间的先后顺序也没变，
+   * 变的只是「某张竖图从横图后面挪到了横图前面」。 */
   function pages() {
-    const L = list(), out = [];
-    for (let i = 0; i < L.length;) {
-      if (isPortrait(L[i]) && isPortrait(L[i + 1])) {
-        out.push([L[i], L[i + 1]]); i += 2;
-      } else { out.push([L[i]]); i += 1; }
+    const L = list(), used = new Array(L.length).fill(false), out = [];
+    for (let i = 0; i < L.length; i++) {
+      if (used[i]) continue;
+      used[i] = true;
+      if (!isPortrait(L[i])) { out.push([L[i]]); continue; }
+      let j = -1;
+      for (let k = i + 1; k < L.length; k++) {
+        if (!used[k] && isPortrait(L[k])) { j = k; break; }
+      }
+      if (j < 0) { out.push([L[i]]); continue; }   // 竖图是奇数张，最后那张只能单开
+      used[j] = true;
+      out.push([L[i], L[j]]);
     }
     return out;
   }
@@ -534,16 +525,49 @@ export function openGallery() {
    * 两张竖图直接对齐中轴贴在一起，那条接缝自己就是装订线。 */
   const GUT = 0;
 
+  /* ⚠️ **一本书只有一个页高。**（Iris 2026-08-31 报的「翻书时有高度差」）
+   *
+   * 原来是每一页各自去撑满舞台：`k = min(每页宽/pw, H/ph, 1)`。
+   * 只要照片的比例不完全一致，撑满的那一边就不一样 ——
+   *   · 3:2 的横图（2400×1600）在高上顶到 H
+   *   · 16:9 的那张雪山（2400×1350）先顶到宽，于是**矮了一截**
+   *   · 5:3 的西湖（2400×1440）同理
+   * 翻页时上下边缘忽高忽低，看着像页面在跳。真书不会这样：**纸是一样大的。**
+   *
+   * 所以先把整本书扫一遍，找出「最宽的那个跨页」（每页所有照片的宽高比之和），
+   * 用它定出一个能让最宽那页也塞进 W 的页高，然后**所有照片都用这个高**。
+   * 宽度跟着各自的比例走 —— 于是高度永远齐平，窄的照片左右留白多一点，
+   * 这正是照片书里「按高对齐」的排法。
+   *
+   * 页高是**每本相册**算一次的，不是每页 —— 每页算的话就等于没改。 */
+  /* ⚠️ **算页高的时候要把视频排除在外。**（09-01，Iris：「相册比刚刚小了很多」）
+   * 第一版是拿全册最宽的那个跨页去定页高。Hawaii 里混着一条 16:9 的视频，
+   * 于是**一条视频把整本 36 张照片全压矮了 16%**。
+   * 一条视频不该定义一本照片集的开本。现在页高只看照片；
+   * 视频（或者哪张异常宽的照片）在 boxes() 里单独缩到能塞进去为止，
+   * 只有它自己那一页会矮一点，别的页照旧。 */
+  function pageH(W, H) {
+    let widest = 1, minNat = Infinity;
+    for (const pg of pages()) {
+      if (pg.some(isVid)) continue;
+      let a = 0;
+      for (const p of pg) { a += (p.w || 3) / (p.h || 2); minNat = Math.min(minNat, p.h || 2); }
+      if (a > widest) widest = a;
+    }
+    if (!Number.isFinite(minNat)) minNat = Infinity;   // 整本都是视频
+    /* 第三项 = **永远不放大**：页高不能超过这本相册里最矮那张的原始高度。 */
+    return Math.min(H, (W - GUT) / widest, minNat);
+  }
+
   /* 一张照片摆多大，**在 JS 里算**。
    * 不用 CSS 百分比：图的 max-height 要拿容器高度算，而容器高度又要等图量出来，
    * 循环依赖，Chrome 会直接放弃、让竖图把舞台顶穿。w/h 是现成的，算一下就完了。 */
   function boxes(items, W, H) {
-    const each = items.length > 1 ? (W - GUT) / 2 : W;
-    return items.map(p => {
-      const pw = p.w || 3, ph = p.h || 2;
-      const k = Math.min(each / pw, H / ph, 1);   // 第三个 1 = **永远不放大**
-      return { w: Math.round(pw * k), h: Math.round(ph * k) };
-    });
+    const sum = items.reduce((a, p) => a + (p.w || 3) / (p.h || 2), 0);
+    /* 通常这一页就是全册那个页高；只有比「最宽的照片跨页」还宽的那种页
+     * （视频、或者哪张特别宽的照片）才会被这里压到刚好塞得下。 */
+    const ph = Math.min(pageH(W, H), (W - GUT) / sum);
+    return items.map(p => ({ w: Math.round(ph * (p.w || 3) / (p.h || 2)), h: Math.round(ph) }));
   }
 
   /* 一张照片 = 一个 figure：图 + （整理模式下）右上角的 ×  + 淘汰的红斜纹。
@@ -642,6 +666,7 @@ export function openGallery() {
 
   function showOne() {
     view = 'one';
+    sizeWindow();          // 同上：翻开之后要用大的那个上限
     win.win.classList.add('is-bare');
     wakeOne();
     win.setView(h('div.y2k-cam', stage, h('div.y2k-cam__meta', caption, where, count)));
@@ -658,6 +683,8 @@ export function openGallery() {
    * 回来时发现号过期了就丢掉，否则会把已经翻过去的画面又盖回来。 */
   let seq = 0;
   let flipping = null;
+  /* 这一次落页不放动画（刚打开一本相册 / 刚换了一本）。 */
+  let fresh = false;
   /* 现在**已经落在纸上**的那一页。
    * ⚠️ 不能用 page() 去拿「翻之前那一页」—— go() 是先改 si 再调 paint()，
    * 进到 paint() 的时候 page() 已经是新的那一页了。用它做翻书的正面，
@@ -691,11 +718,11 @@ export function openGallery() {
 
     const baseNode = h('div.y2k-flipbase', { style: { width: W + 'px', height: H + 'px' } },
       half(spreadNode(P1), 'l'),
-      half(spreadNode(P2), 'r'),
-      /* 翻起来那一页在底下投的影：前半程落在右页上、后半程落在左页上。
-       * 有了它才有「一张纸浮在另一张纸上面」的层次。 */
-      h('div.y2k-flipshade.is-right'),
-      h('div.y2k-flipshade.is-left'));
+      half(spreadNode(P2), 'r'));
+    /* ⚠️ 这里原来还挂着两块 .y2k-flipshade（整页大小的渐变，模拟纸落在纸上的影）。
+     * 删了 —— 这本相册是裸叠，页面上除了照片什么都没有，那块渐变就成了
+     * 一个横跨半屏的深色矩形在跟着翻页明灭（Iris 08-31 报的「外面还有一个框」）。
+     * 层次现在由转起来那一面的 brightness 打光 + 照片自己的 box-shadow 给。 */
 
     const sheet = h('div.y2k-flip', { style: { width: (W / 2) + 'px', height: H + 'px' } },
       h('div.y2k-flip__face.is-front', half(spreadNode(P1), 'r')),
@@ -710,6 +737,9 @@ export function openGallery() {
     sheet.style.animation = '';
     sheet.dataset.dir = dir;
 
+    /* 被下一次翻页打断时要知道「这一次本来是要翻到哪一页」，见 paint() 里那段。 */
+    layer._to = items;
+
     const done = () => {
       if (my !== seq) return;
       commit(items);
@@ -719,8 +749,8 @@ export function openGallery() {
     };
     sheet.addEventListener('animationend', done, { once: true });
     /* 页面在后台时浏览器既不推进动画也不派发它的事件 —— 补一个定时器兜底，
-     * 否则那一层会一直盖在上面。 */
-    setTimeout(done, 1100);
+     * 否则那一层会一直盖在上面。比动画本身多留一点余量就够。 */
+    setTimeout(done, FLIP_MS + 220);
   }
 
   /* 把这一页真正落到 sheets 上（翻书结束、或者叠化的时候用） */
@@ -740,7 +770,16 @@ export function openGallery() {
     const p = items[0];
     const my = ++seq;
 
-    if (flipping) { flipping.remove(); flipping = null; stage.classList.remove('is-flipping'); }
+    /* ⚠️ 打断上一次翻页时，必须**先把它要翻到的那一页落下来**。
+     * 原来只是 `flipping.remove()`，`shown` 还停在更早的那一页 ——
+     * 于是连按右键时每一次都是「从第一页翻起」，看上去像同一个动画在重播，
+     * 而 si 其实一路往后跑了（Iris 08-31：「以为还没翻过去，发现已经到最后一张」）。
+     * 落下来之后，这一次的正面就是上一次的背面，连着按就是一页接一页地翻。 */
+    if (flipping) {
+      if (flipping._to) commit(flipping._to);
+      flipping.remove(); flipping = null;
+      stage.classList.remove('is-flipping');
+    }
 
     const vid = isVid(p);
     stage.classList.toggle('is-video', vid);
@@ -758,9 +797,16 @@ export function openGallery() {
       let left = probes.filter(im => !(im.complete && im.naturalWidth)).length;
       const run = () => {
         if (my !== seq) return;                 // 已经翻到别的页了，这一帧作废
-        stage.dataset.turn = turn;
+        /* data-turn 决定 CSS 里挂哪条动画；给一个没人匹配的值 = 这一次不放动画。 */
+        stage.dataset.turn = fresh ? 'none' : turn;
         stage.dataset.dir = dir;
-        if (turn === 'book' && shown.length && shown !== items) {
+        const wasFresh = fresh;
+        fresh = false;
+        /* ⚠️ `shown[0] !== items[0]` 这个判断不能省。
+         * paint() 不只在翻页时被调用 —— 窗口尺寸一变 ResizeObserver 也会重画，
+         * 而 page() 每次都返回一个**新数组**，所以不能用 shown !== items 去比。
+         * 不比内容的话，一次纯粹的重排会「从这一页翻到这一页」，凭空多一次翻书动画。 */
+        if (!wasFresh && turn === 'book' && shown.length && shown[0] !== items[0]) {
           flipTo(items, my);                    // 第一次进来没有旧页可翻，直接落
         } else {
           const { nx, pv } = commit(items);
@@ -795,10 +841,15 @@ export function openGallery() {
     ].flat().filter(Boolean));
     where.hidden = !(place || a.date);
 
-    win.setTitle('照片', a.city || 'PHOTOS');
-    const from = list().indexOf(items[0]) + 1;
-    count.textContent = (items.length > 1 ? from + '–' + (from + 1) : String(from).padStart(2, '0'))
-      + ' / ' + list().length;
+    win.setTitle('摄影集', a.city || '');
+    /* ⚠️ 数的是**跨页**，不是照片。
+     * 原来写的是「第几张 / 共几张」，并排两张就写成 `from–from+1` ——
+     * 那是「配对的两张一定挨着」时才成立的。竖图配对改成往后找之后
+     * （见 pages() 那段），一对里的两张可能隔着好几张横图，
+     * 于是页码会跳号、并排那页还会写出一个根本不存在的区间。
+     * 一本书本来也是数页的：这一页是第几页、总共几页。 */
+    const P = pages();
+    count.textContent = String(si + 1).padStart(2, '0') + ' / ' + P.length;
     killBtn.textContent = rejects.has(p.src) ? '恢复' : '淘汰';
     /* 不循环了，所以到头的那一侧要看得出来是到头了 */
     prevBtn.disabled = si === 0;
@@ -965,7 +1016,7 @@ export function openGallery() {
     const text = JSON.stringify(out, null, 1);
     try {
       await navigator.clipboard.writeText(text);
-      ui.fill(tally, '已复制 —— 整个盖掉 内容/相册/photos.json');
+      ui.fill(tally, '已复制 —— 整个盖掉 照片/清单.json');
       setTimeout(updateTally, 3600);
     } catch {
       /* 剪贴板要安全上下文，file:// 下会被拒。退回「自己选自己复制」。 */
@@ -1020,11 +1071,8 @@ export function openGallery() {
    * 读的是同一批 localStorage 键，所以页脚那排和面板永远是一致的。 */
   _sync = () => {
     if (win.closed) { _sync = null; return; }
-    home   = pick(LS_HOME,   { film: 1, stack: 1, cover: 1 }, HOME);
-    turn   = pick(LS_TURN,   TURNS,   'book');
-    pile   = pick(LS_PILE,   PILES,   PILE);
-    layout = pick(LS_LAYOUT, LAYOUTS, LAYOUT);
-    homeSel.sync(); laySel.sync(); pileSel.sync(); turnSel.sync();
+    turn = pick(LS_TURN, TURNS, 'book');
+    turnSel.sync();
     if (view === 'home') showHome(false); else paint();
   };
 

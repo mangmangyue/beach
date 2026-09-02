@@ -50,28 +50,42 @@
  * ========================================================================== */
 
 export const ALBUMS = [
+  /* ⚠️ **数组的顺序就是唱片架上的顺序**，代码不会再排一遍。
+   * 2026-09-01 Iris 定的：**从新到旧**，其中 How Sweet 排在 Supernatural 前面
+   * （两张都是 2024，谁在前是她挑的，不是日期算出来的 —— 所以别加自动排序，
+   *   加了就把这个手排的选择冲掉了，和 照片/清单.json 那边是同一条规矩）。 */
   {
-    id: 'supernatural',
-    title: 'Supernatural',
-    artist: 'NewJeans',
-    year: 2024,
-    cover: 'covers/supernatural.jpg',
-    accent: '#1FCEFF',
-    /* vinyl = 这张专辑放的时候彩胶的颜色（Iris 08-29 逐张选的；写什么色就是什么色，
-     * 不做糖果化）。没有 vinyl 字段的专辑回落到 accent（会糖果化）。 */
-    vinyl: '#262A33',   // 黑色透明（烟熏）。Iris 的备选：粉色透明 '#E784A6'，两个都渲过图
-    spotifyAlbum: '1FVw30SoC91lq1UZ6N9rwN',
-    appleAlbumId: 1750576829,
-    appleUrl: 'https://music.apple.com/us/album/supernatural/1750576829',
+    id: 'happy-happy',
+    title: '如果每天都可以 happy happy 誰想要sad:)) - 一起去度假',
+    artist: '陳嫺靜',
+    year: 2025,
+    cover: 'covers/happy-happy.jpg',
+    accent: '#C78257',
+    vinyl: '#8F5A32',   // 封面里那个棕（accent 偏橙，Iris 08-29 要棕）
+    spotifyAlbum: '4IVCRrXA13fqInFbyhN4y9',
+    appleAlbumId: 1799903617,
+    appleUrl: 'https://music.apple.com/us/album/new-notes/1799903617',
     tracks: [
-      { title: 'Supernatural'               , duration: '3:11', spotifyTrack: '5ocSQW5sIUIOFojwXEz9Ki',
-        appleTrackId: 1750576834, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/41/ce/f9/41cef96a-6b48-2ddd-72a8-f479e7a1c752/mzaf_5570335600994446876.plus.aac.p.m4a',  },
-      { title: 'Right Now'                  , duration: '2:40', spotifyTrack: '58Q3FZFs1YXPpliWQB5kXB',
-        appleTrackId: 1750576838, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d9/a5/ff/d9a5ff09-9936-60c3-322d-6541eb8228a0/mzaf_8507832924895951906.plus.aac.p.m4a',  },
-      { title: 'Supernatural (Instrumental)', duration: '3:11', spotifyTrack: '4823f9W4xmR3n1BebPyNaR',
-        appleTrackId: 1750576846, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/54/37/ea/5437eafd-88eb-1bd8-8820-a7db4e10e6b8/mzaf_2206439411773151287.plus.aac.p.m4a',  },
-      { title: 'Right Now (Instrumental)'   , duration: '2:40', spotifyTrack: '6jgUrLEivd4DaiYb1izJLF',
-        appleTrackId: 1750576848, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ca/f5/08/caf50809-faf4-7a50-f4d5-3ca9eaf0bf33/mzaf_4788667005915297884.plus.aac.p.m4a',  },
+      { title: 'New notes'                    , duration: '3:14', spotifyTrack: '4PwO55sEmOZr89pNhCUFuY',
+        appleTrackId: 1799903620, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5a/24/44/5a24449d-c2a8-71c1-dbe6-85e4456a0ee3/mzaf_8158187045711020970.plus.aac.p.m4a',  },
+      { title: 'e04嘛那麼累'                      , duration: '2:15', spotifyTrack: '1CjKw3Php8zVhaHvNFLIeD',
+        appleTrackId: 1799903622, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8c/71/60/8c716077-638c-da47-97a7-db6de9afcefe/mzaf_194999288671456112.plus.aac.p.m4a',  },
+      { title: 'Super hyper'                  , duration: '3:14', spotifyTrack: '58CEgJTbh9XNJG70GSeS3B',
+        appleTrackId: 1799903623, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8c/83/76/8c8376d8-427c-e887-5954-446f4311a6e8/mzaf_17576478634229073173.plus.aac.p.m4a',  },
+      { title: '科幻小說'                         , duration: '2:57', spotifyTrack: '416Z4twQflY6NmXtxI013g',
+        appleTrackId: 1799903625, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/37/37/70/37377096-bd72-cd0f-1983-d6744df82d9d/mzaf_8297350837692810214.plus.aac.p.m4a',  },
+      { title: '吸塵器 維他命'                      , duration: '5:47', spotifyTrack: '1brkyYuqCUGB66g2c7auZc',
+        appleTrackId: 1799903627, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ac/4e/bc/ac4ebcb7-c0c4-1367-5128-33c6a6f17dad/mzaf_3618712220723385462.plus.aac.p.m4a',  },
+      { title: 'Whisper to my ear'            , duration: '3:10', spotifyTrack: '2wm8sD5ZG6MNJUl9j6haT2',
+        appleTrackId: 1799903628, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a9/d4/2e/a9d42e45-e869-b9ca-b31a-fefb47dd4206/mzaf_18199785153109631864.plus.aac.p.m4a',  },
+      { title: '春雨'                           , duration: '4:19', spotifyTrack: '5naJyBiXYbtXhYNPBA2nr6',
+        appleTrackId: 1799903629, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/af/81/09/af810999-e8c7-7191-2ed7-8bb24039bc62/mzaf_11478487524077249121.plus.aac.p.m4a',  },
+      { title: '結晶'                           , duration: '3:50', spotifyTrack: '1X1mGJZnRRxdC1zuzyRVE5',
+        appleTrackId: 1799903750, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/21/6e/4b/216e4b62-7d0b-7baf-21ab-5602a0929e55/mzaf_8315761872415470107.plus.aac.p.m4a',  },
+      { title: 'Wui229'                       , duration: '3:00', spotifyTrack: '6ys5ZWv1RTBlwBs1vRFyd1',
+        appleTrackId: 1799903751, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/59/b9/f4/59b9f44d-308e-db3d-298c-15e4e3ee0fd3/mzaf_7688935202351904198.plus.aac.p.m4a',  },
+      { title: '如果每天都可以 happy happy 誰想要sad:))', duration: '4:28', spotifyTrack: '5u6xwrIwh9cPW9VXCODU7v',
+        appleTrackId: 1799903752, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d5/ff/93/d5ff93a7-2c0b-e2c4-f64f-bf23c3609498/mzaf_13594939706966217636.plus.aac.p.m4a',  },
     ],
   },
   {
@@ -94,6 +108,30 @@ export const ALBUMS = [
         appleTrackId: 1744448551, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/66/1e/53/661e53a0-7b94-a107-5566-3c0965ecbe9a/mzaf_16927712233418403912.plus.aac.p.m4a',  },
       { title: 'Bubble Gum (Instrumental)', duration: '3:20', spotifyTrack: '54uNtM77iZ5gawWBQGnEar',
         appleTrackId: 1744448555, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/55/cf/ca/55cfca9e-66fb-39a8-ed00-72e587332ed0/mzaf_14657405780734511175.plus.aac.p.m4a',  },
+    ],
+  },
+  {
+    id: 'supernatural',
+    title: 'Supernatural',
+    artist: 'NewJeans',
+    year: 2024,
+    cover: 'covers/supernatural.jpg',
+    accent: '#1FCEFF',
+    /* vinyl = 这张专辑放的时候彩胶的颜色（Iris 08-29 逐张选的；写什么色就是什么色，
+     * 不做糖果化）。没有 vinyl 字段的专辑回落到 accent（会糖果化）。 */
+    vinyl: '#262A33',   // 黑色透明（烟熏）。Iris 的备选：粉色透明 '#E784A6'，两个都渲过图
+    spotifyAlbum: '1FVw30SoC91lq1UZ6N9rwN',
+    appleAlbumId: 1750576829,
+    appleUrl: 'https://music.apple.com/us/album/supernatural/1750576829',
+    tracks: [
+      { title: 'Supernatural'               , duration: '3:11', spotifyTrack: '5ocSQW5sIUIOFojwXEz9Ki',
+        appleTrackId: 1750576834, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/41/ce/f9/41cef96a-6b48-2ddd-72a8-f479e7a1c752/mzaf_5570335600994446876.plus.aac.p.m4a',  },
+      { title: 'Right Now'                  , duration: '2:40', spotifyTrack: '58Q3FZFs1YXPpliWQB5kXB',
+        appleTrackId: 1750576838, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d9/a5/ff/d9a5ff09-9936-60c3-322d-6541eb8228a0/mzaf_8507832924895951906.plus.aac.p.m4a',  },
+      { title: 'Supernatural (Instrumental)', duration: '3:11', spotifyTrack: '4823f9W4xmR3n1BebPyNaR',
+        appleTrackId: 1750576846, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/54/37/ea/5437eafd-88eb-1bd8-8820-a7db4e10e6b8/mzaf_2206439411773151287.plus.aac.p.m4a',  },
+      { title: 'Right Now (Instrumental)'   , duration: '2:40', spotifyTrack: '6jgUrLEivd4DaiYb1izJLF',
+        appleTrackId: 1750576848, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ca/f5/08/caf50809-faf4-7a50-f4d5-3ca9eaf0bf33/mzaf_4788667005915297884.plus.aac.p.m4a',  },
     ],
   },
   {
@@ -212,46 +250,15 @@ export const ALBUMS = [
         appleTrackId: 1804828044, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/37/63/8a/37638ae5-f9a7-7ee2-4b39-88ed925d7af8/mzaf_8008673070012614353.plus.aac.p.m4a',  },
     ],
   },
-  {
-    id: 'happy-happy',
-    title: '如果每天都可以 happy happy 誰想要sad:)) - 一起去度假',
-    artist: '陳嫺靜',
-    year: 2025,
-    cover: 'covers/happy-happy.jpg',
-    accent: '#C78257',
-    vinyl: '#8F5A32',   // 封面里那个棕（accent 偏橙，Iris 08-29 要棕）
-    spotifyAlbum: '4IVCRrXA13fqInFbyhN4y9',
-    appleAlbumId: 1799903617,
-    appleUrl: 'https://music.apple.com/us/album/new-notes/1799903617',
-    tracks: [
-      { title: 'New notes'                    , duration: '3:14', spotifyTrack: '4PwO55sEmOZr89pNhCUFuY',
-        appleTrackId: 1799903620, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/5a/24/44/5a24449d-c2a8-71c1-dbe6-85e4456a0ee3/mzaf_8158187045711020970.plus.aac.p.m4a',  },
-      { title: 'e04嘛那麼累'                      , duration: '2:15', spotifyTrack: '1CjKw3Php8zVhaHvNFLIeD',
-        appleTrackId: 1799903622, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8c/71/60/8c716077-638c-da47-97a7-db6de9afcefe/mzaf_194999288671456112.plus.aac.p.m4a',  },
-      { title: 'Super hyper'                  , duration: '3:14', spotifyTrack: '58CEgJTbh9XNJG70GSeS3B',
-        appleTrackId: 1799903623, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8c/83/76/8c8376d8-427c-e887-5954-446f4311a6e8/mzaf_17576478634229073173.plus.aac.p.m4a',  },
-      { title: '科幻小說'                         , duration: '2:57', spotifyTrack: '416Z4twQflY6NmXtxI013g',
-        appleTrackId: 1799903625, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/37/37/70/37377096-bd72-cd0f-1983-d6744df82d9d/mzaf_8297350837692810214.plus.aac.p.m4a',  },
-      { title: '吸塵器 維他命'                      , duration: '5:47', spotifyTrack: '1brkyYuqCUGB66g2c7auZc',
-        appleTrackId: 1799903627, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ac/4e/bc/ac4ebcb7-c0c4-1367-5128-33c6a6f17dad/mzaf_3618712220723385462.plus.aac.p.m4a',  },
-      { title: 'Whisper to my ear'            , duration: '3:10', spotifyTrack: '2wm8sD5ZG6MNJUl9j6haT2',
-        appleTrackId: 1799903628, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a9/d4/2e/a9d42e45-e869-b9ca-b31a-fefb47dd4206/mzaf_18199785153109631864.plus.aac.p.m4a',  },
-      { title: '春雨'                           , duration: '4:19', spotifyTrack: '5naJyBiXYbtXhYNPBA2nr6',
-        appleTrackId: 1799903629, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/af/81/09/af810999-e8c7-7191-2ed7-8bb24039bc62/mzaf_11478487524077249121.plus.aac.p.m4a',  },
-      { title: '結晶'                           , duration: '3:50', spotifyTrack: '1X1mGJZnRRxdC1zuzyRVE5',
-        appleTrackId: 1799903750, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/21/6e/4b/216e4b62-7d0b-7baf-21ab-5602a0929e55/mzaf_8315761872415470107.plus.aac.p.m4a',  },
-      { title: 'Wui229'                       , duration: '3:00', spotifyTrack: '6ys5ZWv1RTBlwBs1vRFyd1',
-        appleTrackId: 1799903751, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/59/b9/f4/59b9f44d-308e-db3d-298c-15e4e3ee0fd3/mzaf_7688935202351904198.plus.aac.p.m4a',  },
-      { title: '如果每天都可以 happy happy 誰想要sad:))', duration: '4:28', spotifyTrack: '5u6xwrIwh9cPW9VXCODU7v',
-        appleTrackId: 1799903752, applePreviewUrl: 'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/d5/ff/93/d5ff93a7-2c0b-e2c4-f64f-bf23c3609498/mzaf_13594939706966217636.plus.aac.p.m4a',  },
-    ],
-  },
 ];
 
-/* 唱片架标题栏右边那行小字。想换就换。 */
+/* 唱片架标题栏。想换就换。
+ * ⚠️ `sub` 原来是「N 张」，2026-08-31 Iris 要求去掉 —— 留 VINYL 就够了。
+ * 留成空字符串而不是删掉这个字段：player.js 有三处 `shelf.sub` 在用它。
+ * `blurb` 现在也没人读了（页脚那行说明一起删的），留着当备用文案。 */
 export const SHELF = {
   title: 'VINYL',
-  sub: `${ALBUMS.length} 张`,
+  sub: '',
   /* 未登录访客只有 30 秒试听 —— 与其藏着，不如把它说成一个概念。 */
   blurb: '一张张抽出来试听。喜欢就去 Spotify 听完整的。',
 };

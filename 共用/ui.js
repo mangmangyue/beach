@@ -177,6 +177,22 @@ export function fill(el, ...children) {
  *    的修正。等它们真的实现了，把 KNOWN_LIARS 删掉即可，别的都不用动。
  * ------------------------------------------------------------------------- */
 
+/* 折射开关。改成 false = 只剩模糊 + 染色 + 边缘光那一版（也是完整的一套材质）。
+ *
+ * ⚠️⚠️ **在动这里的任何参数之前，先确认 backdrop-filter 真的生效了。**
+ * 2026-08-31 为了「折射看不见」前后查了七轮，改过方向、断面、范围、强度、
+ * 内容内缩、还把模糊拆成了单独一层 —— **全都是白改**。
+ * 真因是 `.y2k-scrim` 上一条 `animation: y2k-fade ... both`（动 opacity）：
+ * 它让遮罩成了 **backdrop root**，里面的窗口拿到的"背景"是空的，
+ * 于是位移和模糊全都作用在空气上。而且 getComputedStyle 查出来一字不差，
+ * 不报错、不警告，看上去就像"参数没调对"。
+ *
+ * 判定方法（三十秒）：往 body 上塞一个同样 backdrop-filter 的裸 div 做对照。
+ * 裸的生效、窗口的不生效 → 就是 backdrop root，往上找祖先的
+ * filter / opacity≠1 / transform / will-change / backdrop-filter。
+ * UI 参数面板的自检行现在会直接写「⚠️ 被 xxx 挡住了」。 */
+const REFRACT = true;
+
 /* 三档能力。UI 上想显示当前在哪一档，读 ui.tier。 */
 export const GLASS_TIER = (() => {
   if (typeof window === 'undefined' || !window.CSS?.supports) return 'flat';
@@ -198,14 +214,23 @@ if (document.documentElement) document.documentElement.dataset.y2kTier = GLASS_T
 
 /* 预设切换器的几个常量。声明在这里而不是跟 PRESETS 放一起 ——
  * 下面 setPreset / _preset 的初始化比 PRESETS 那一节先执行，const 有暂时性死区。 */
-const PRESET_ORDER = ['thin', 'base', 'thick', 'bubble'];
+const PRESET_ORDER = ['thin', 'base', 'bubble'];   // 厚玻璃已删（Iris 08-31：太厚了）
 const DEFAULT_PRESET = 'base';
 const LS_PRESET = 'y2k-glass-preset';
 
 /* 出厂参数。Iris 在 UI实验室/玻璃.html 上拖滑块调，调好点「导出」贴回这里。 */
 export const GLASS = {
   radius:     22,     /* 圆角半径 px。跟 --y2k-r 对齐，不然折射的形状和窗口对不上 */
-  thickness:  30,     /* 厚边宽度 px：穹顶从边缘弯到平坦中心用掉这么宽的一条带子 */
+  /* 穹顶从边缘弯到平坦中心，用掉**半个面板的百分之多少**。
+   * ⚠️ 这个数以前是像素（最大 90），那是个错误的参数化：
+   * 在一块 740px 宽的面板上，90px 永远只是边上一条窄带，中间一大片是平的 ——
+   * 看上去就「只有边边在弯」（Iris 2026-08-31 的原话）。改成按面板尺寸取百分比：
+   *   15  ≈ 一圈厚边（原来那个样子）
+   *   100 = 整块都是弧面，**整个背景都在折射**，只有正中心一点是平的
+   * 后者才是一块真正的平凸透镜。 */
+  spread:     100,
+  /* 断面形状：0 = 超椭圆（只有边在弯）、100 = 球冠（整块都是透镜）。见 domeSlope。 */
+  curve:      100,
   gain:       22,     /* 最边上把背景往里拉多少 px。这是「玻璃有多厚」的直观旋钮 */
   ior:        1.5,    /* 折射率。真实玻璃 1.5，水 1.33，蓝宝石 1.77 */
   dispersion: 0,      /* 色散：红蓝折射率之差 ×1000。0 = 关（省两次位移，backdrop 每帧都跑） */
@@ -233,13 +258,27 @@ function glassDefs() {
   return (_defs = svg);
 }
 
+/* 球冠断面里，边缘最陡到多少度。82° 已经很接近掠射，再大数值就不稳了。 */
+const SPH_MAX = 82 * Math.PI / 180;
+
 /* 穹顶断面：x = 从边缘往里的深度（0 边缘 / 1 中心），返回表面倾角 θi。
- * 单独抽出来是为了能在实验室里把这条曲线画出来看。 */
-export function domeSlope(x) {
+ * curve = 0..1，在两种断面之间插值：
+ *
+ *   0  **超椭圆**（苹果圆角那条）：中心极平，斜率几乎全挤在最外圈。
+ *      算出来是这样的：把弯折范围拉满到整块面板，中段的位移仍然接近 0 ——
+ *      因为 u³/(1−u⁴)^0.75 在 u<0.8 的时候本来就趋近于零。
+ *      所以它天生只能做出「一圈厚边在弯」，做不出「整块都在折射」。
+ *   1  **球冠**：θ = asin(u·sin82°)，从中心到边缘平滑地越来越陡 ——
+ *      这才是一块真正的透镜，**整个背景都被弯**，中心也只是弯得最少而已。
+ *
+ * ⚠️ 这两条都是解析式，没有一条是「看着像」调出来的贝塞尔。
+ * Iris 要的是后者（2026-08-31：「我要的是整个 ui 背景的折射，不是只有那几个边边」）。 */
+export function domeSlope(x, curve = 1) {
   const u = 1 - Math.min(1, Math.max(0, x));
   const den = 1 - u * u * u * u;
-  if (den <= 1e-9) return Math.PI / 2;              /* 边缘：竖直下折 */
-  return Math.atan((u * u * u) / Math.pow(den, 0.75));
+  const sq = den <= 1e-9 ? Math.PI / 2 : Math.atan((u * u * u) / Math.pow(den, 0.75));
+  const sp = Math.asin(Math.min(1, u * Math.sin(SPH_MAX)));
+  return sq * (1 - curve) + sp * curve;
 }
 
 /* 斯涅尔。返回横向偏移量 bend，中心为 0、边缘最大（1.5 时上限 0.7454）。 */
@@ -256,7 +295,7 @@ function snellBend(thetaI, ior) {
  * 一张 420×360 的图是十五万个像素，每像素分配一个临时对象会让开窗卡一百毫秒。
  * 法线是解析解，不用差分，每像素还能少算四次距离。 */
 function buildMaps(w, h, o) {
-  const sig = [w, h, o.radius, o.thickness, o.ior, o.spec, o.specPower, o.fresnel,
+  const sig = [w, h, o.radius, o.spread, o.curve, o.ior, o.spec, o.specPower, o.fresnel,
                o.light.join(',')].join('|');
   const hit = _mapCache.get(sig);
   if (hit) return hit;
@@ -275,17 +314,33 @@ function buildMaps(w, h, o) {
 
   const bendMax = snellBend(Math.PI / 2, o.ior) || 1;
   const radius = Math.max(0, Math.min(o.radius, w / 2, h / 2));
-  const band = Math.max(1, o.thickness);
+  /* 弯折带的宽度 = 半个短边 × spread%。100% 时整块面板都是弧面。 */
+  const band = Math.max(1, (o.spread / 100) * Math.min(w, h) / 2);
+  /* ⚠️ **边缘光要用它自己的窄带，不能跟着 band 走。**
+   * 「离最近那条边多远」这个量在角平分线上是不连续的 —— 从某一点起最近的边
+   * 从上边换成了左边，法线方位角一跳，高光的亮度跟着一跳。
+   * band 铺满整块面板时（spread 100），这条不连续就从四个角一路划到中心，
+   * 看上去就是**两条斜着的怪线**（Iris 2026-08-31 报的）。
+   * 边缘光本来就只该待在最外面那一圈（它是斜面反的光），
+   * 把它限死在 6% 的窄带里，斜线就落在几乎没有亮度的地方，看不见了。 */
+  const rimBand = Math.max(2, Math.min(band, Math.min(w, h) * 0.06));
   const cx = w / 2, cy = h / 2;
   const ix = cx - radius, iy = cy - radius;      /* 直边段的半长 */
 
   /* 断面只跟「离边界多远」有关，跟在哪条边上无关 —— 所以整条曲线预先算成一张表，
    * 每像素只做一次查表 + 一次插值。十五万次 atan/asin 会明显卡开窗那一帧。 */
-  const LUT = 256, bendT = new Float32Array(LUT), sinT = new Float32Array(LUT), cosT = new Float32Array(LUT);
+  const LUT = 256;
+  /* bendT / sinT / cosT 按「离最近那条边有多远」建（边缘型 + 边缘光都用它，
+   * 所以一律用超椭圆断面 curve=0，这样高光永远贴着边）。 */
+  const bendT = new Float32Array(LUT), sinT = new Float32Array(LUT), cosT = new Float32Array(LUT);
+  /* bendT2 按「离中心有多远」建，走球冠断面 —— 透镜型用它。 */
+  const bendT2 = new Float32Array(LUT);
   for (let i = 0; i < LUT; i++) {
-    const th = domeSlope(i / (LUT - 1));
+    const th = domeSlope(i / (LUT - 1), 0);
     bendT[i] = snellBend(th, o.ior) / bendMax;   /* 归一到 0~1，幅度全交给 scale */
     sinT[i] = Math.sin(th); cosT[i] = Math.cos(th);
+    /* i/(LUT-1) 这里是「离中心的归一距离」，1 = 边上，所以断面参数要反过来喂 */
+    bendT2[i] = snellBend(domeSlope(1 - i / (LUT - 1), 1), o.ior) / bendMax;
   }
 
   let i = 0;
@@ -310,38 +365,61 @@ function buildMaps(w, h, o) {
        * 圆角那一支 radius - len 一直是对的，所以这个错很难一眼看出来。 */
 
       let r = 128, g = 128, lit = 0;
+
+      /* ------------------------------------------------------------------
+       * 两套位移，按 curve 混合。它们的**方向**不一样，这才是关键：
+       *
+       *  A 边缘型（curve 0）：方向 = 圆角矩形 SDF 的法线，也就是「垂直于最近的那条边」。
+       *    一块中心是平的穹顶就该这样。但它在一条边的中段是**整片同向平移**，
+       *    看上去是一道抹痕、不是放大 —— 铺满整块面板时就成了两条诡异的直条
+       *    （Iris 2026-08-31 看到的就是这个）。
+       *
+       *  B 透镜型（curve 1）：方向 = **从面板中心往外**，大小随离中心的距离增长。
+       *    这就是一块平凸透镜在做的事：背后的东西被整体放大、越靠边推得越多。
+       *    「整个窗口是一块玻璃、背景被它顶起来」要的是这个，不是 A。
+       * ------------------------------------------------------------------ */
+      const ex = (px - cx) / (w / 2), ey = (py - cy) / (h / 2);   // 椭圆归一化坐标
+      const er = Math.hypot(ex, ey);
+
+      /* B：离中心多远就是断面上的哪一点（er=1 在边上） */
+      let bx = 0, by = 0;
+      if (er > 1e-4) {
+        const jb = Math.min(1, er) * (LUT - 1), j0 = jb | 0, f = jb - j0;
+        const j1 = j0 + 1 < LUT ? j0 + 1 : j0;
+        const kb = (bendT2[j0] + (bendT2[j1] - bendT2[j0]) * f) * 127;
+        bx = (ex / er) * kb; by = (ey / er) * kb;
+      }
+
+      /* A：离最近那条边多远 */
+      let ax = 0, ay = 0;
       if (dist >= 0) {
-        const t = Math.min(1, dist / band);      /* 0 = 边缘，1 = 平坦中心 */
+        const t = Math.min(1, dist / band);
         const j = t * (LUT - 1), j0 = j | 0, f = j - j0, j1 = j0 + 1 < LUT ? j0 + 1 : j0;
-        const bend = bendT[j0] + (bendT[j1] - bendT[j0]) * f;
-        const st   = sinT[j0]  + (sinT[j1]  - sinT[j0])  * f;
-        const ct   = cosT[j0]  + (cosT[j1]  - cosT[j0])  * f;
+        const ka = (bendT[j0] + (bendT[j1] - bendT[j0]) * f) * 127;
+        ax = nx * ka; ay = ny * ka;
+      }
 
-        const k = bend * 127;
-        r = 128 + nx * k; g = 128 + ny * k;
-        if (r < 0) r = 0; else if (r > 255) r = 255;
-        if (g < 0) g = 0; else if (g > 255) g = 255;
+      const cu = (o.curve ?? 100) / 100;
+      r = 128 + ax * (1 - cu) + bx * cu;
+      g = 128 + ay * (1 - cu) + by * cu;
+      if (r < 0) r = 0; else if (r > 255) r = 255;
+      if (g < 0) g = 0; else if (g > 255) g = 255;
 
-        /* 同一个表面的法线，拿去算反射。V = (0,0,1)。 */
+      /* 边缘光只跟**边**走（它是那一圈迎光的窄面），所以永远用 A 的法线和倾角、
+       * 而且用自己的窄带 rimBand —— 理由见上面那段。 */
+      if (dist >= 0 && dist < rimBand) {
+        const t = Math.min(1, dist / rimBand);
+        const j = t * (LUT - 1), j0 = j | 0, f = j - j0, j1 = j0 + 1 < LUT ? j0 + 1 : j0;
+        const st = sinT[j0] + (sinT[j1] - sinT[j0]) * f;
+        const ct = cosT[j0] + (cosT[j1] - cosT[j0]) * f;
         const Nx = nx * st, Ny = ny * st, Nz = ct;
-        const ndv = Nz;                                                   /* N·V */
-        const Rx = 2 * ndv * Nx, Ry = 2 * ndv * Ny, Rz = 2 * ndv * Nz - 1;  /* 反射向量 */
-
-        /* 菲涅尔：正对着看只反 4%，掠射角几乎全反 —— 所以最亮的永远是最外面那一线。 */
+        const ndv = Nz;
+        const Rx = 2 * ndv * Nx, Ry = 2 * ndv * Ny, Rz = 2 * ndv * Nz - 1;
         const F = 0.04 + 0.96 * Math.pow(1 - Math.max(0, ndv), 5);
-
-        /* 环境：反射朝上 = 天（1.0），朝下 = 沙（0.65），贴着地平线 = 0.30。
-         * 这一项才是「一圈边绕过去亮度不均」的来源。 */
         const up = Ry < 0 ? -Ry : 0, dn = Ry > 0 ? Ry : 0;
         const env = 0.45 + 0.55 * Math.pow(up, 0.7) + 0.30 * Math.pow(dn, 1.6);
-
-        /* 太阳：一颗有方向的小亮点，落在斜面上朝着光的那一段。
-         * spec 是**太阳相对天空的亮度倍数**，所以它是个大数（十几）而不是 0~1 ——
-         * 斜面在那个角度只反射 4%（F 很小），但太阳本身比天空亮几个量级，
-         * 乘完才是我们眼睛看到的那道最亮的弧。两项都乘 F 才是同一套光学。 */
         let sun = Rx * lx + Ry * ly + Rz * lz;
         sun = sun > 0 ? Math.pow(sun, o.specPower) : 0;
-
         lit = F * (o.fresnel * env + o.spec * sun);
         if (lit > 1) lit = 1; else if (lit < 0) lit = 0;
       }
@@ -374,7 +452,7 @@ export function glass(el, opts = {}) {
   const id = `y2k-glass-${++_fid}`;
   let filter = null, feImage = null, disp = [], chromaOn = null;
 
-  if (GLASS_TIER === 'refract') {
+  if (REFRACT && GLASS_TIER === 'refract') {
     const NS = 'http://www.w3.org/2000/svg';
     filter = document.createElementNS(NS, 'filter');
     filter.setAttribute('id', id);
@@ -442,8 +520,20 @@ export function glass(el, opts = {}) {
 
   let last = '';
   function refresh(force) {
-    const r = el.getBoundingClientRect();
-    const w = Math.round(r.width), h = Math.round(r.height);
+    /* ⚠️ **用 offsetWidth/offsetHeight，不要用 getBoundingClientRect()。**
+     * （Iris 2026-09-01：相册里靠右和靠下各有一条很明显的直线）
+     *
+     * getBoundingClientRect 给的是**变换之后**的框。窗口开场有一段 y2k-pop 的缩放动画，
+     * 而第一次画图正好推到了动画进行中的那一拍 —— 量到的是 95.5% 的尺寸，
+     * 于是位移图只铺满窗口的 95.5%，剩下那一圈没有图。
+     * feDisplacementMap 在有图和没图的交界处位移量从 gain 直接跳到 0，
+     * 那道跳变就是她看到的两条线（右边一条竖的、下面一条横的，正好在 95.5% 处）。
+     *
+     * 而且 ResizeObserver **不会**因为 transform 变化再触发一次 —— 它盯的是布局框，
+     * 动画结束、缩放回到 1 的时候没有任何人来纠正，那两条线就一直留在那儿。
+     * offsetWidth/offsetHeight 是布局尺寸，transform 影响不到它，从头到尾都是对的
+     * （filterUnits=userSpaceOnUse 要的也正是这个未变换的坐标系）。 */
+    const w = el.offsetWidth, h = el.offsetHeight;
     if (!w || !h) return;
     const sig = `${w}x${h}|${JSON.stringify(o)}`;
     if (!force && sig === last) return;
@@ -452,7 +542,8 @@ export function glass(el, opts = {}) {
     /* 位移图缩着算：图很平滑，拉开看不出来，但省一大截时间 */
     const k = Math.min(1, MAP_MAX / Math.max(w, h));
     const mw = Math.max(8, Math.round(w * k)), mh = Math.max(8, Math.round(h * k));
-    const maps = buildMaps(mw, mh, { ...o, radius: o.radius * k, thickness: o.thickness * k });
+    /* radius 是像素、要跟着缩；spread 是百分比、不用缩 */
+    const maps = buildMaps(mw, mh, { ...o, radius: o.radius * k });
 
     /* 边缘光贴图：三档都用，它不经过任何滤镜。 */
     el.style.setProperty('--y2k-rim-map', `url("${maps.rim}")`);
@@ -476,7 +567,12 @@ export function glass(el, opts = {}) {
       disp[i].setAttribute('scale', (base * f).toFixed(2));
     }
     /* ⚠️ 必须引用 var(--y2k-blur)，不能把数值写死 —— 写死的话这条内联样式会盖掉
-     * CSS 里的 backdrop-filter，「模糊 / 饱和」两个令牌彻底失效。 */
+     * CSS 里的 backdrop-filter，「模糊 / 饱和」两个令牌就彻底失效。
+     *
+     * 曾经以为「Chromium 会把 url() 后面的函数全丢掉」，所以拆出过一层单独做模糊。
+     * **那是误判**：真正的原因是遮罩上的 opacity 动画让窗口落进了 backdrop root，
+     * 于是 url 和 blur 一起失效，看上去像「只有 url 生效」。遮罩修好之后
+     * `url(#f) blur(14px) saturate(1.6)` 三件事同时成立，验证过。 */
     const fx = `url(#${id}) var(--y2k-blur)`;
     el.style.backdropFilter = fx;
     el.style.webkitBackdropFilter = fx;
@@ -516,15 +612,29 @@ export function setGlass(next = {}) {
 const _wins = new Set();
 let _preset = DEFAULT_PRESET;
 
-export function setPreset(name) {
+/* @param optics  true = 顺便把这一档的光学参数推到滑块上（用户主动切档时）
+ *                 false = 只换材质，滑块**一根都不动**（刷新时恢复上次那一档用）
+ * ⚠️ 刷新时必须传 false。传 true 的话，预设会把它自己的出厂光学值写回滑块，
+ * 把 Iris 在这一档上调过的值当场冲掉 —— 表现是「圆角调好了，一刷新又回去了」，
+ * 而且她根本不会想到是切档的代码干的（09-01 报的：radius 存了 9，刷新后是 30）。 */
+export function setPreset(name, { optics = true } = {}) {
   const p = PRESETS[name];
   if (!p) return _preset;
   _preset = name;
   try { localStorage.setItem(LS_PRESET, name); } catch { /* 无痕模式，不存就不存 */ }
   _material = p.material;
   for (const w of _wins) w.setMaterial(p.material);
+  if (!optics) { applyVis(); dockVis(true); return name; }
   const base = MATERIALS[p.material].glass;
-  setGlass({ ...base, ...(p.glass || {}) });
+  const g = { ...base, ...(p.glass || {}) };
+  /* ⚠️ 预设和「折射强度 / 厚边宽度 / 圆角」那三根滑块**改的是同一组数**。
+   * 不把预设的值写回滑块的话，两边各说各的：面板上显示 gain 46，
+   * 实际跑的是预设的 42，而且随便动一下别的滑块就把预设覆盖掉了。
+   * 一个真相：预设 = 一次性把那三根滑块推到某个位置。 */
+  visVals.gain = g.gain; visVals.spread = g.spread;
+  visVals.curve = g.curve; visVals.radius = g.radius;
+  applyVis();
+  dockVis(true);                       // 面板上的滑块跟着跳
   return name;
 }
 export function getPreset() { return _preset; }
@@ -543,14 +653,23 @@ export function getPreset() { return _preset; }
 export const MATERIALS = {
   glass: {
     cls: 'y2k-mat-glass',
-    glass: { radius: 22, thickness: 30, gain: 22, ior: 1.5, dispersion: 0,
+    /* ⚠️ **字色是材质的一部分，不是全局偏好。**
+     * 判据（ui.css 1.4 节）：面板比背景亮 → 深字，比背景暗 → 浅字。
+     * 玻璃不压暗，是一片被照亮的雾 → 深字；泡泡有熏色、字底往暗里垫 → 浅字。
+     * 08-31 走过一个来回：当时想让泡泡也配深字，于是把泡膜洗白去迁就字，
+     * 结果泡泡比薄片和出厂还亮，「膜」没了。**先选对极性，再谈垫多少。** */
+    ink: 'dark',
+    /* ★ 出厂值：Iris 2026-08-31 在真场景里拖出来的。别凭感觉改回去。
+     * 方向是「只有最外面一圈在弯，中间完全干净」—— curve 9 几乎是纯 squircle
+     * （中心是平的），spread 39 把弯折带收在边上，gain 21 很克制。 */
+    glass: { radius: 22, spread: 39, curve: 9, gain: 21, ior: 1.5, dispersion: 0,
              spec: 22, specPower: 12, fresnel: 1.00 },
   },
   bubble: {
     cls: 'y2k-mat-bubble',
-    /* 皂膜不是镜片：折射率低、膜薄（thickness 大而 gain 小 = 弯得宽而软），
-     * 薄膜干涉让色散拉满。 */
-    glass: { radius: 30, thickness: 64, gain: 10, ior: 1.34, dispersion: 34,
+    ink: 'light',
+    /* 皂膜不是镜片：折射率低、弯得宽而软，薄膜干涉让色散拉满。 */
+    glass: { radius: 30, spread: 100, curve: 100, gain: 20, ior: 1.34, dispersion: 34,
              spec: 10, specPower: 6, fresnel: 1.00 },
   },
 };
@@ -565,16 +684,20 @@ export const MATERIALS = {
  *
  *   Shift + G      循环切下一个，右下角冒一个小标签告诉你现在是哪个
  *   Shift + Alt+G  切回出厂
- *   ?glass=thick   地址栏里指定（截图对比的时候好用）
+ *   ?glass=bubble  地址栏里指定（截图对比的时候好用）
  *
  * 选中的那个存在 localStorage 里，刷新还在。定下来之后把 DEFAULT_PRESET 改掉，
  * 这一整节就可以删了。
  * ------------------------------------------------------------------------- */
 export const PRESETS = {
-  thin:  { label: '① 薄片',   material: 'glass',  glass: { thickness: 16, gain: 10 } },
-  base:  { label: '② 出厂',   material: 'glass',  glass: { thickness: 30, gain: 22 } },
-  thick: { label: '③ 厚玻璃', material: 'glass',  glass: { thickness: 48, gain: 42 } },
-  bubble:{ label: '④ 泡泡',   material: 'bubble', glass: null },
+  /* 四档拉开的是**弧面铺多远 + 弯多狠**，不再是「边有多宽」。 */
+  /* ② 出厂 = Iris 08-31 拖出来的那组，和 MATERIALS.glass 里的出厂值是同一份。
+   * ① 薄片 = 同一个方向再收一半，给「就要一点点」的场合。
+   * ③ 泡泡 = 另一种材质，不是同一块玻璃的另一个厚度。
+   * 「④ 厚玻璃」08-31 删了 —— Iris：太厚了。 */
+  thin:  { label: '① 薄片', material: 'glass',  glass: { spread: 26, curve: 0, gain: 11 } },
+  base:  { label: '② 出厂', material: 'glass',  glass: { spread: 39, curve: 9, gain: 21 } },
+  bubble:{ label: '③ 泡泡', material: 'bubble', glass: null },
 };
 
 let _material = 'glass';
@@ -639,9 +762,12 @@ function createWindow(opts = {}) {
     modal = true, mount = document.body,
     draggable = true, closeOnScrim = true, closeOnEsc = true, onClose,
     fixedHeight = false,        // true = 窗口尺寸固定，换内容时不跳（多层导航用）
+    compact = false,            // true = 薄标题栏 / 薄页脚，把高度让给内容（迷你播放器那种小窗）
     keepAlive = false,          // true = 关闭只是「收起」，DOM 留着，再开是 reopen()
     material = _material,       // 'glass' | 'bubble'，见 MATERIALS
-    ink = _ink,                 // 'light' | 'dark' —— 面板比背景亮就用 dark
+    /* 不传就跟着材质走（MATERIALS[].ink）。显式传了才按传的来 —— 留给
+     * 「我就是要泡泡配深字」那种特例，正常情况下别传。 */
+    ink = MATERIALS[material]?.ink ?? _ink,
   } = opts;
 
   let restoreFocus = document.activeElement;
@@ -682,8 +808,20 @@ function createWindow(opts = {}) {
    * 只有 refract 档才会真的去弯背景。 */
   let mat = MATERIALS[material] ? material : 'glass';
   win.classList.add(MATERIALS[mat].cls);
-  if (ink === 'dark') win.classList.add('y2k-ink-dark');
-  const lens = glass(win, MATERIALS[mat].glass);
+  /* ⚠️ 两个类都要真的挂上，不能只挂「非默认」的那一个。
+   * :root 的出厂值是深字，但深字窗口**也**要挂 y2k-ink-dark ——
+   * 一个深字窗口可能开在浅字窗口上面（弹窗套弹窗），靠继承就会读到外面那层的浅字。 */
+  win.classList.add(ink === 'light' ? 'y2k-ink-light' : 'y2k-ink-dark');
+  if (compact) win.classList.add('y2k-window--compact');
+  /* ⚠️ **不要在这里传 MATERIALS[mat].glass。**
+   * 那是「材质的出厂值」，传进去会把预设和面板滑块调好的值**当场盖掉** ——
+   * 而窗口是每次点开才新建的，所以表现是：面板上怎么调都对，一关一开
+   * 又变回 gain 22 / 厚边 30，永远看不到「厚玻璃」那一档在弯什么。
+   * （2026-08-31 Iris 报「折射感完全没有」的真因就是这个 —— 她一直在看出厂值，
+   *   而 setGlass 只改「已经开着的」窗口，新开的一个都管不到。）
+   * 当前该用哪组值住在全局 GLASS 里，setPreset 和面板滑块都往那儿写。
+   * 换材质是另一回事，走 api.setMaterial()。 */
+  const lens = glass(win);
 
   /* 镜面高光跟着指针走 —— liquid glass 里「活」的那一下。
    * 只改两个自定义属性，画的事全交给 CSS。
@@ -713,7 +851,23 @@ function createWindow(opts = {}) {
     },
 
     /* 换掉整块内容。两层结构（唱片架 ⇄ 专辑内页）就靠这个切。 */
-    setView(...nodes) { fill(body, nodes); return api; },
+    setView(...nodes) {
+      fill(body, nodes);
+      /* ⚠️ 里面装了别人网站的 iframe 时，**整套玻璃都要关掉**。
+       * 两个原因，第二个是真 bug：
+       *   1. 那是别人的页面，我们没有权利往它上面糊一层白 —— 中间那块
+       *      「垫底」的半透明白正好压在人家的排版上。
+       *   2. Safari / Firefox 上 -webkit-backdrop-filter 会把**自己的子元素**
+       *      一起糊掉（Chromium 不会）。所以 Iris 在外面的浏览器里打开，
+       *      整个 a-cocktail 都是模糊的，在 localhost（Chrome）里却是清楚的。
+       *      不是那个站的问题，是我们这层玻璃的问题。 */
+      win.classList.toggle('has-frame', !!body.querySelector('iframe'));
+      if (body.querySelector('iframe')) {
+        win.style.backdropFilter = 'none';
+        win.style.webkitBackdropFilter = 'none';
+      }
+      return api;
+    },
 
     setFooter(...nodes) {
       const flat = nodes.flat(Infinity).filter(Boolean);
@@ -785,7 +939,12 @@ function createWindow(opts = {}) {
     get material() { return mat; },
 
     /* 浅字 / 深字。面板整体比背景亮就该用 'dark'。 */
-    setInk(name) { win.classList.toggle('y2k-ink-dark', name === 'dark'); return api; },
+    setInk(name) {
+      const dark = name !== 'light';
+      win.classList.toggle('y2k-ink-dark', dark);
+      win.classList.toggle('y2k-ink-light', !dark);
+      return api;
+    },
 
     /* 让窗口被某个颜色轻轻染一下（播放器拿它染成当前唱片的颜色）。
      * 传 null 取消。 */
@@ -803,7 +962,11 @@ function createWindow(opts = {}) {
       win.classList.remove(MATERIALS[mat].cls);
       mat = name;
       win.classList.add(MATERIALS[mat].cls);
-      lens.set(MATERIALS[mat].glass);
+      /* 字色跟着材质换。不换的话切到泡泡就是深蓝字压深蓝垫子（见 MATERIALS.glass.ink）。
+       * 光学参数**不跟着换** —— 那是滑块和预设说了算的，见上面 createWindow 里那段警告。 */
+      const dark = MATERIALS[mat].ink !== 'light';
+      win.classList.toggle('y2k-ink-dark', dark);
+      win.classList.toggle('y2k-ink-light', !dark);
       return api;
     },
 
@@ -1037,52 +1200,311 @@ function embed({ height = 152 } = {}) {
 }
 
 /* ---------------------------------------------------------------------------
- * 4.85 · 设置面板 —— 所有「几选一」的唯一入口
+ * 4.8 · UI 视觉参数 —— 挂进场景那块「✦ 视觉参数」面板里
  *
- * 上线之后 Iris 还要在**真场景里**慢慢调这些（玻璃厚度、相册主页长什么样、
- * 翻页怎么翻）。分散在各处的快捷键和页脚按钮她记不住，也不该记 ——
- * 所以做一个面板，谁有选项谁自己注册进来：
+ * Iris 调 3D 的地方就是那块面板，UI 的参数没道理另开一个地方 ——
+ * 所以这里生成一段和它同一套样式的 DOM，**塞进它里面**。
+ *
+ * ⚠️ 那块面板在 `共用/stage.js`（主窗口的文件），我不改它，只往里 append。
+ * 它折叠 / 恢复默认时会整块重建，所以要用 MutationObserver 盯着重新塞。
+ * 找不到它（比如在 UI实验室 的单页里）就自己长一个一样的小面板出来。
+ *
+ * 这些值一律存 localStorage，刷新还在。定稿之后：把选中的值写死进
+ * ui.css 的令牌，然后把这一整节删掉。
+ * ------------------------------------------------------------------------- */
+const LS_VIS = 'y2k-ui-vis';
+
+/* 每一项：改的是哪个 CSS 变量、范围、怎么拼成 CSS 值。
+ * 这几个就是「感觉对不对」的全部旋钮 —— 早期截图那种更「厚」的观感，
+ * 主要来自更高的白染色 + 有颗粒 + 更实的边。 */
+/* def 那一列 = 出厂值，和 ui.css 的令牌、MATERIALS.glass 必须是同一组数
+ * （Iris 2026-08-31 拖的）。三处对不上的话，「恢复默认」会跳到一个谁都没见过的样子。 */
+const VIS = [
+  { k: 'blur',     tag: '模糊',     min: 0, max: 30, step: .5, def: 1 },
+  { k: 'sat',      tag: '提饱和',   min: 1, max: 3,  step: .05, def: 1 },
+  { k: 'tint',     tag: '白染色',   min: 0, max: 45, step: 1,  def: 10, unit: '%' },
+  { k: 'plate',    tag: '内容垫底', min: 0, max: 70, step: 1,  def: 18, unit: '%' },
+  { k: 'gain',     tag: '折射强度', min: 0, max: 120, step: 1, def: 21, unit: 'px' },
+  { k: 'spread',   tag: '弯折范围', min: 5, max: 100, step: 1, def: 39, unit: '%' },
+  { k: 'curve',    tag: '弧面形状', min: 0, max: 100, step: 1, def: 9, unit: '%' },
+  { k: 'rim',      tag: '边缘光',   min: 0, max: 2,  step: .05, def: 1 },
+  /* 跟着鼠标走的那一点高光 */
+  { k: 'specR',    tag: '光斑大小', min: 0, max: 200, step: 2, def: 40, unit: 'px' },
+  { k: 'specA',    tag: '光斑强度', min: 0, max: 1,  step: .02, def: .4 },
+  { k: 'grain',    tag: '颗粒',     min: 0, max: 20, step: 1,  def: 0, unit: '%' },
+  { k: 'radius',   tag: '圆角',     min: 0, max: 40, step: 1,  def: 22, unit: 'px' },
+  /* 迷你播放器那一小块的三段留白。差两三个像素就觉得挤，只能当场拖。 */
+  { k: 'miniLead', tag: '小窗·线上', min: 0, max: 24, step: 1,  def: 6,  unit: 'px' },
+  { k: 'miniGap',  tag: '小窗·线下', min: 0, max: 30, step: 1,  def: 10, unit: 'px' },
+  { k: 'miniBtns', tag: '小窗·键距', min: 0, max: 24, step: 1,  def: 6,  unit: 'px' },
+];
+const visVals = (() => {
+  const d = Object.fromEntries(VIS.map(v => [v.k, v.def]));
+  try { Object.assign(d, JSON.parse(localStorage.getItem(LS_VIS) || '{}')); } catch { /* 无痕 */ }
+  /* ⚠️ 存过的值要**夹回当前的范围**里。范围是会改的 ——
+   * 模糊的上限从 20 收到了 8，而浏览器里还存着 14：滑块看上去在最右边，
+   * 实际跑的却是一个已经不在选项里的数，而且不去动它就一直好不了。
+   * 这和 pick() 要验「这个档还在不在」是同一类问题。 */
+  for (const v of VIS) {
+    const x = +d[v.k];
+    d[v.k] = Number.isFinite(x) ? Math.min(v.max, Math.max(v.min, x)) : v.def;
+  }
+  return d;
+})();
+
+export function applyVis() {
+  const r = document.documentElement.style, v = visVals;
+  /* --y2k-blur 三档都在用：refract 档是 `url(#滤镜) var(--y2k-blur)` 拼在一起的
+   * （曾经以为 Chromium 会把 url() 后面的函数丢掉 —— **那是误判**，见第 2 节 REFRACT）。 */
+  r.setProperty('--y2k-blur', `blur(${v.blur}px) saturate(${v.sat}) brightness(1.02)`);
+  /* 同 plate：写原始量，各档（玻璃 / 泡泡）自己 calc 出那层白的浓度。
+   * 直接写 --y2k-tint 的话，泡泡因为自己声明过一遍，这根滑块在它身上是哑的。 */
+  r.setProperty('--y2k-tint-a', (v.tint / 100).toFixed(3));
+  /* ⚠️ 主力是 -a（一个纯数字）。深字档 / 泡泡档各自拿它去拼自己那层白，
+   * 而不是各写各的 --y2k-plate —— 谁重新声明了 --y2k-plate，
+   * 谁的子树就读不到这根滑块了。理由写在 ui.css 第 1 节 --y2k-plate-a 那段。 */
+  r.setProperty('--y2k-plate-a', (v.plate / 100).toFixed(3));
+  r.setProperty('--y2k-plate', `rgba(255,255,255,${(v.plate / 100).toFixed(3)})`);
+  r.setProperty('--y2k-rim-a', String(v.rim));
+  r.setProperty('--y2k-spec-r', v.specR + 'px');
+  r.setProperty('--y2k-spec-a', String(v.specA));
+  r.setProperty('--y2k-grain-a', String(v.grain / 100));
+  /* ⚠️ 写 --y2k-r-base，不是 --y2k-r。泡泡档自己声明了 --y2k-r
+   * （在 base 上加 8px），直接写 --y2k-r 的话它那一档读不到这根滑块。 */
+  r.setProperty('--y2k-r-base', v.radius + 'px');
+  r.setProperty('--y2k-mini-lead', v.miniLead + 'px');
+  r.setProperty('--y2k-mini-gap', v.miniGap + 'px');
+  r.setProperty('--y2k-mini-btns', v.miniBtns + 'px');
+  setGlass({ radius: v.radius, gain: v.gain, spread: v.spread, curve: v.curve });
+  try { localStorage.setItem(LS_VIS, JSON.stringify(v)); } catch { /* 无痕 */ }
+}
+
+/* 生成一段和场景面板同一套样式的 DOM */
+function visSection() {
+  const wrap = document.createElement('div');
+  wrap.dataset.y2kVis = '';
+  const head = document.createElement('div');
+  head.textContent = 'UI · 弹窗玻璃';
+  head.style.cssText = 'margin:10px 0 4px;padding-top:8px;border-top:1px solid #2a2e38;'
+    + 'letter-spacing:.16em;font-size:10px;color:#7f8ba0';
+  wrap.appendChild(head);
+  const warn = document.createElement('div');
+  warn.textContent = '折射强度 0 = 只剩模糊那一版。弯折范围/弧面形状拉满 = 整块都在折射。';
+  warn.style.cssText = 'font-size:9.5px;line-height:1.5;color:#6f7b8c;margin:0 0 4px';
+  wrap.appendChild(warn);
+
+  /* ⚠️ 一条实时的自检。
+   * 「折射是不是真的在跑」这件事查了三轮，前两轮都栽在「看着像没有 = 其实没有」上。
+   * 把真相直接打在面板上：能力档、当前 gain、**活着的滤镜上真实的 scale**、
+   * 挂上折射的窗口数。scale 应该正好是 −2×gain；对不上就是参数没送到。 */
+  const stat = document.createElement('div');
+  stat.style.cssText = 'font:9.5px/1.5 ui-monospace,monospace;color:#7f9ab5;margin:0 0 6px';
+  /* ⚠️ 只报「算出来是什么」是不够的 —— 遮罩那个 backdrop root 的坑就是
+   * 计算值全对但根本不生效。所以再报一条：窗口有没有落在某个 backdrop root 里面。 */
+  const readStat = () => {
+    const w = document.querySelector('.y2k-window');
+    if (!w) { stat.textContent = `${GLASS_TIER} · 还没有窗口`; return; }
+    let bad = '';
+    for (let e = w.parentElement; e && e !== document.documentElement; e = e.parentElement) {
+      const c = getComputedStyle(e);
+      const anim = c.animationName !== 'none';
+      if (c.filter !== 'none' || c.opacity !== '1' || (anim && /opacity/i.test(c.willChange))
+          || c.backdropFilter !== 'none' || c.willChange !== 'auto') {
+        bad = (e.className || e.tagName).split(' ')[0]; break;
+      }
+    }
+    stat.textContent = `${GLASS_TIER} · 生效中：${getComputedStyle(w).backdropFilter}`
+      + (bad ? ` · ⚠️ 被 ${bad} 挡住了` : '');
+  };
+  readStat();
+  setInterval(readStat, 700);
+  wrap.appendChild(stat);
+
+  /* 「只看玻璃」：把弹窗里所有不透明的内容临时藏掉，只剩那块玻璃压在沙滩上。
+   * 真实窗口里内容几乎占满，能看见玻璃的只有边上一圈，弯了也容易被当成没弯 ——
+   * 这个开关是用来确认「到底有没有」的，不是一个功能。 */
+  const peekRow = document.createElement('label');
+  peekRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin:0 0 8px;cursor:pointer';
+  peekRow.innerHTML = '<input type="checkbox"><span>只看玻璃（把弹窗内容临时藏起来）</span>';
+  peekRow.querySelector('input').onchange = e => {
+    document.documentElement.classList.toggle('y2k-peek', e.target.checked);
+  };
+  wrap.appendChild(peekRow);
+
+  for (const it of VIS) {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:grid;grid-template-columns:104px 1fr 42px;gap:5px;'
+      + 'align-items:center;margin:3px 0';
+    const fmt = x => (it.step < 1 ? (+x).toFixed(2) : x) + (it.unit || '');
+    row.innerHTML = `<span>${it.tag}</span><input type="range" min="${it.min}" max="${it.max}" `
+      + `step="${it.step}" value="${visVals[it.k]}"><b style="text-align:right">${fmt(visVals[it.k])}</b>`;
+    const inp = row.querySelector('input'), out = row.querySelector('b');
+    inp.oninput = () => { visVals[it.k] = +inp.value; out.textContent = fmt(inp.value); applyVis(); };
+    wrap.appendChild(row);
+  }
+
+  /* 几选一（玻璃预设、字色、翻页……）：谁注册进来就画谁 */
+  for (const o of OPTIONS) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:104px 1fr;gap:5px;align-items:center;margin:4px 0';
+    const tag = document.createElement('span'); tag.textContent = o.tag;
+    const box = document.createElement('div');
+    box.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px';
+    o.keys.forEach(k => {
+      const b = document.createElement('button');
+      b.textContent = o.labels[k];
+      const paint = () => {
+        b.style.cssText = 'padding:2px 7px;border-radius:10px;cursor:pointer;font:10px ui-monospace,monospace;'
+          + (o.get() === k ? 'background:#3d4f66;color:#dbe7f5;border:1px solid #5a7a9c'
+                           : 'background:transparent;color:#8b97a8;border:1px solid #2f3542');
+      };
+      b.onclick = () => { o.set(k); [...box.children].forEach(c => c._paint && c._paint()); };
+      b._paint = paint; paint();
+      box.appendChild(b);
+    });
+    row.append(tag, box);
+    wrap.appendChild(row);
+  }
+
+  /* 和场景面板一个流程：调好 → 复制 → 贴回代码。
+   * ⚠️ UI 的值**不在** ENV 里，所以场景那颗「复制参数 JSON」导不出它们，
+   * 得有自己这一颗，否则调完的东西只活在这台浏览器的 localStorage 里。 */
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;margin-top:8px';
+  const copy = document.createElement('button');
+  copy.textContent = '复制 UI 参数';
+  copy.style.cssText = 'flex:1;padding:4px 8px;cursor:pointer';
+  copy.onclick = () => {
+    const out = { ...visVals };
+    for (const o of OPTIONS) out[o.id] = o.get();
+    navigator.clipboard.writeText(JSON.stringify(out, null, 2));
+    copy.textContent = '已复制'; setTimeout(() => { copy.textContent = '复制 UI 参数'; }, 1200);
+  };
+  const reset = document.createElement('button');
+  reset.textContent = '恢复默认';
+  reset.style.cssText = 'padding:4px 8px;cursor:pointer';
+  reset.onclick = () => {
+    VIS.forEach(v => { visVals[v.k] = v.def; });
+    applyVis(); dockVis(true);
+  };
+  row.append(copy, reset);
+  wrap.appendChild(row);
+  return wrap;
+}
+
+/* 找场景那块面板：它没有 id / class，只能靠开头那句「视觉参数」认。
+ * 认不出来就返回 null，调用方自己长一个。 */
+function findScenePanel() {
+  for (const d of document.querySelectorAll('body > div')) {
+    if (d.style.position === 'fixed' && /^视觉参数/.test(d.textContent || '')) return d;
+  }
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
+ * 调参面板 = **调试期的脚手架**，上线的站上不该有。
+ *
+ * Iris 09-01：「视觉参数效果我后台还是要自己调，不过上线的网站里能不能不要有
+ * 这个视觉参数的小方框？」—— 所以不是删掉，是**只在开发环境露出来**。
+ *
+ * 判据（满足任意一条就算开发中）：
+ *   · 跑在 localhost / 127.0.0.1 / ::1 上（自己电脑上调参，永远算）
+ *   · 地址里带 ?dev=1（线上临时开一下，改完关掉标签页就没了）
+ *   · localStorage 里存了 y2k-dev=1（线上长期开着，只在自己这台机器上）
+ *
+ * ⚠️ 用主机名判断，不要用 UA、也不要留一个「上线前记得改成 false」的常量 ——
+ * 那种常量的结局一定是忘了改。这样写的话，**部署出去自动就是关的**。
+ *
+ * 关掉之后连带没有的：UI 参数那一段、Shift+U、Shift+G 切玻璃、
+ * 场景自己那颗「✦ 视觉参数」按钮和它的面板（见 hideDevChrome）。 */
+export const DEV = (() => {
+  try {
+    /* 地址栏说了算，两个方向都算：
+     *   ?dev=1  线上临时打开
+     *   ?dev=0  **在自己电脑上看访客看到的样子** —— 上线前用它验一遍，
+     *           不然「面板藏没藏干净」这件事在 localhost 上永远验不了。 */
+    const q = new URLSearchParams(location.search).get('dev');
+    if (q === '1') return true;
+    if (q === '0') {
+      /* ⚠️ 这个参数会**粘在地址栏里**。09-01 Iris 用它验完访客视角、
+       * 之后一直找不到调参面板，就是因为标签页里还留着 ?dev=0。
+       * 所以关掉的时候在控制台喊一声，别让人对着一个空屏幕猜。 */
+      console.info('[y2k] 地址里有 ?dev=0，调试面板（✦ 视觉参数 / Shift+U / 整理模式）已隐藏。去掉这个参数刷新就回来。');
+      return false;
+    }
+    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return true;
+    return localStorage.getItem('y2k-dev') === '1';
+  } catch { return false; }
+})();
+
+/* 场景那颗「✦ 视觉参数」和它展开的面板是 stage.js 建的（不归 UI 窗口）。
+ * 不去改它的代码 —— 只在非开发环境把它藏起来。藏的是**显示**，不是功能：
+ * 加 ?dev=1 刷新一下它就回来了，逻辑一行没动。 */
+function hideDevChrome() {
+  if (DEV) return;
+  for (const b of document.querySelectorAll('body > button')) {
+    if (/视觉参数/.test(b.textContent || '')) b.style.display = 'none';
+  }
+  const panel = findScenePanel();
+  if (panel) panel.style.display = 'none';
+}
+
+let _visOwn = null;
+function dockVis(force) {
+  if (!DEV) { hideDevChrome(); return false; }
+  const host = findScenePanel();
+  if (host) {
+    const old = host.querySelector('[data-y2k-vis]');
+    if (old && !force) return true;
+    old?.remove();
+    /* 插在「复制参数 JSON / 恢复默认」那排按钮**前面** ——
+     * 追加到最后的话那两颗按钮会被顶到看不见的地方，而它们是每次调完都要点的。 */
+    const btns = [...host.children].find(
+      c => c.tagName === 'DIV' && /复制参数/.test(c.textContent || ''));
+    host.insertBefore(visSection(), btns || null);
+    _visOwn?.remove(); _visOwn = null;
+    return true;
+  }
+  /* 场景面板不在（UI实验室的单页）→ 自己长一个一样的 */
+  if (_visOwn && !force) return false;
+  _visOwn?.remove();
+  _visOwn = document.createElement('div');
+  _visOwn.style.cssText = 'position:fixed;top:12px;left:12px;width:262px;max-height:92vh;overflow-y:auto;'
+    + 'background:rgba(18,21,28,.93);color:#aab2c0;font:11px/1.5 ui-monospace,monospace;'
+    + 'padding:10px 12px;border-radius:8px;border:1px solid #2a2e38;z-index:9999';
+  _visOwn.innerHTML = '<b style="letter-spacing:.12em">UI 参数</b> <small>（Shift+U 开关）</small>';
+  _visOwn.appendChild(visSection());
+  document.body.appendChild(_visOwn);
+  return false;
+}
+
+if (typeof window !== 'undefined') {
+  applyVis();
+  /* 场景面板是点开才建、折叠/恢复默认时整块重建的，所以要一直盯着 */
+  const mo = new MutationObserver(() => {
+    if (!DEV) { hideDevChrome(); return; }
+    if (findScenePanel()) dockVis();
+  });
+  hideDevChrome();
+  addEventListener('DOMContentLoaded', () => mo.observe(document.body, { childList: true }));
+  if (document.readyState !== 'loading') mo.observe(document.body, { childList: true });
+}
+
+/* ---------------------------------------------------------------------------
+ * 4.85 · 「几选一」的注册表
+ *
+ * 谁有选项谁注册进来，上面 4.8 的 UI 参数里会自动多一行：
  *
  *     ui.registerOption({ id, tag, keys, labels, get, set })
  *
- * 打开：**Shift + U**（或 ui.settings()）。选择一律存 localStorage，刷新还在。
- * 全部定稿之后，这一节连同各处的 registerOption 一起删掉。
+ * 只有一个面板 —— 场景那块「✦ 视觉参数」。分散在各处的快捷键和页脚按钮
+ * Iris 记不住，也不该记。全部定稿之后这一节和 4.8 一起删。
  * ------------------------------------------------------------------------- */
 const OPTIONS = [];
 export function registerOption(o) {
   const i = OPTIONS.findIndex(x => x.id === o.id);
   if (i >= 0) OPTIONS[i] = o; else OPTIONS.push(o);
-}
-
-let _settingsWin = null;
-export function settings() {
-  if (_settingsWin && !_settingsWin.closed) { _settingsWin.reopen(); return _settingsWin; }
-  const win = createWindow({ title: '外观', sub: 'SETTINGS', width: '440px', keepAlive: true });
-  _settingsWin = win;
-
-  function sync() {
-    OPTIONS.forEach((o, i) => {
-      const seg = win.body.querySelectorAll('.y2k-seg')[i];
-      if (!seg) return;
-      [...seg.children].forEach((b, k) => b.classList.toggle('is-on', o.keys[k] === o.get()));
-    });
-  }
-  function build() {
-    win.setView(h('div.y2k-set',
-      ...OPTIONS.map(o => h('div.y2k-set__row',
-        h('div.y2k-set__tag', o.tag),
-        h('div.y2k-seg', o.keys.map(k => h('button.y2k-seg__b', {
-          type: 'button',
-          /* 有的选项会改别的选项要不要出现（比如主页选了「叠放」才有排布和叠法），
-           * 所以整块重建一次，而不是只同步选中态。 */
-          onclick: () => { o.set(k); build(); },
-        }, o.labels[k]))))),
-      h('p.y2k-note', '选的东西存在这台浏览器里，刷新还在。Shift + U 随时开关。')));
-    sync();
-  }
-  build();
-  win.setFooter(spacer(), btn({ label: '知道了', variant: 'primary', onClick: () => win.close() }));
-  return win;
+  dockVis(true);                       // 面板已经在了就补一行进去
 }
 
 /* ---------------------------------------------------------------------------
@@ -1104,11 +1526,13 @@ if (typeof window !== 'undefined') {
   /* 地址栏优先于 localStorage —— 想截一组对比图的时候不用先去清缓存 */
   let boot = new URLSearchParams(location.search).get('glass');
   if (!PRESETS[boot]) { try { boot = localStorage.getItem(LS_PRESET); } catch { boot = null; } }
-  if (PRESETS[boot] && boot !== DEFAULT_PRESET) setPreset(boot);
+  /* 恢复上次选的那一档：只换材质，**不要动滑块** —— 理由见 setPreset 的注释。 */
+  if (PRESETS[boot] && boot !== DEFAULT_PRESET) setPreset(boot, { optics: false });
 
   /* Shift+G 循环。用 code 而不是 key —— key 在 Shift 下是大写 'G'，
    * 而且换成别的键盘布局就对不上了。 */
   window.addEventListener('keydown', e => {
+    if (!DEV) return;                        // 调试快捷键不带上线
     if (!e.shiftKey || e.metaKey || e.ctrlKey) return;
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
@@ -1118,21 +1542,25 @@ if (typeof window !== 'undefined') {
         : PRESET_ORDER[(PRESET_ORDER.indexOf(_preset) + 1) % PRESET_ORDER.length];
       setPreset(next);
       toast(`玻璃 ${PRESETS[next].label}   ·   Shift+G 换下一个`);
-    } else if (e.code === 'KeyU') {          // 设置面板
+    } else if (e.code === 'KeyU') {          // UI 参数
       e.preventDefault();
-      if (_settingsWin && !_settingsWin.closed && !_settingsWin.parked) _settingsWin.close();
-      else settings();
+      if (findScenePanel()) toast('UI 参数在「✦ 视觉参数」面板里（E 开关）');
+      else if (_visOwn) { _visOwn.remove(); _visOwn = null; }
+      else dockVis(true);
     }
   });
 
-  /* 玻璃自己也是一组「几选一」，注册进设置面板 */
-  registerOption({
-    id: 'glass', tag: '玻璃',
-    keys: PRESET_ORDER,
-    labels: Object.fromEntries(PRESET_ORDER.map(k => [k, PRESETS[k].label])),
-    get: () => _preset,
-    set: v => setPreset(v),
-  });
+  /* 玻璃那四档拉开的全是折射参数，折射停用之后它们没有任何区别 ——
+   * 所以不再摆到面板上。REFRACT 打开时把这段放回来即可。 */
+  if (REFRACT) {
+    registerOption({
+      id: 'glass', tag: '玻璃',
+      keys: PRESET_ORDER,
+      labels: Object.fromEntries(PRESET_ORDER.map(k => [k, PRESETS[k].label])),
+      get: () => _preset,
+      set: v => setPreset(v),
+    });
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1143,8 +1571,9 @@ export const ui = {
   /* 把任意元素变成玻璃。三档都能调，返回的对象永远不是 null。
    * ui.tier: 'refract' 真折射 | 'blur' 只有模糊 | 'flat' 连模糊都没有。 */
   glass, setGlass, tier: GLASS_TIER, GLASS,
-  /* 设置面板（Shift+U）。谁有「几选一」就自己 registerOption 进来。 */
-  settings, registerOption,
+  /* UI 参数：挂在场景那块「✦ 视觉参数」面板里（第 4.8 节）。
+   * 谁有「几选一」就自己 registerOption 进来。 */
+  registerOption, applyVis,
   /* 四个预设，Shift+G 在真场景里当场切（见第 2.6 节）。选定之后这三行连同那一节一起删。 */
   PRESETS, setPreset, get preset() { return _preset; },
   MATERIALS,

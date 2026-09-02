@@ -26,7 +26,9 @@
 <body>
 <canvas id="view"></canvas>
 <div id="loading">载入中</div>
-<div id="tip">浪会把垫子外的沙打湿 ｜ 点<b>唱机</b>放歌 ｜ 点<b>相机</b>看照片 ｜ 点<b>猫猫</b>许愿 ｜ 点<b>泡泡</b>戳破 ｜ 点小螃蟹它会跑开、点乌龟它缩头、点章鱼它吐泡泡 ｜ 拖<b>贝壳</b>＝小小的推沙 ｜ 拖<b>空处</b>＝转视角（±90°）｜ 滚轮缩放 ｜ 右下角「✦ 视觉参数」自己调</div>
+<!-- 底部那行操作说明已按 Iris 要求删掉（2026-08-31）。
+     理由是它把「一进来先读一段说明」当成了交互的一部分，而这个站的规矩是
+     「点了就有反应，不给文字提示」。视觉参数面板照旧：右下角那颗 ✦ 或按 E。 -->
 <script type="module">
 /* 环境验收页 —— 阶段 1.5 的交付物之一。
  * 把两个真模型（唱机、酒瓶插花，只读引用）放进白沙海底，
@@ -50,6 +52,23 @@ import { openPlayer } from '../音乐层/player.js';
 import { ui, h } from './ui.js';
 import { openGallery } from './相册.js';
 import { ALBUMS } from '../音乐层/albums.js';
+
+/* albums.js 里的 cover 写的是相对 音乐层/ 的路径（'covers/xx.jpg'）。
+ * 这一页在 /共用/ 下，浏览器按**页面地址**解析，直接用就是 404。
+ * 补前缀这件事有三个地方要做（黑胶标签、迷你窗缩略图、唱片架网格），
+ * 所以抽成一个函数 —— 之前是各写各的，抄漏了两处。
+ * 已经是绝对地址 / 已经补过前缀的（http、/ 开头、.. 开头）原样放行。 */
+const coverURL = c => {
+  if (!c) return '';
+  /* ⚠️ 这个函数会被**套着调用两次**：albums 那份进来时补一次前缀，
+   * 之后 audio.state.cover 把补过的那份传回来，迷你窗口又调一次。
+   * 所以它必须是**幂等**的 —— 而 encodeURI 不是：它会把 `%` 再编成 `%25`，
+   * 第二次调用直接把好路径编坏（中文目录名全是 %XX，一编就 404）。
+   * 已经是绝对地址 / 已经补过前缀的原样返回，一个字符都不动。 */
+  if (/^(https?:|\/|\.\.)/.test(c)) return c;
+  return encodeURI('../音乐层/' + c);
+};
+
 import { audio } from './audio.js';
 import { WAVE_SOUND } from './浪声参数.js';
 
@@ -660,9 +679,7 @@ tickers.push(() => glassLike.forEach(m => {
       redrawRecord();
     };
     im.onerror = () => console.warn('封面没加载到:', st.cover);
-    // albums.js 里的 cover 是相对 音乐层/ 的（'covers/xx.jpg'），
-    // 这页在 /共用/ 下，直接用会 404 —— 补上前缀。player.js 的缩略图同病，归 UI 窗口。
-    im.src = encodeURI(/^(https?:|\/|\.\.)/.test(st.cover) ? st.cover : '../音乐层/' + st.cover);
+    im.src = coverURL(st.cover);
   });
   /* 还没放过歌时也得是一张完整的唱片（Iris 08-29：「默认状态也得有封面」）——
    * 预载 Sons of 1973：封面上标签、彩胶用它的蓝。真放这张时 recCoverSrc 相同，不会重加载。 */
@@ -1007,7 +1024,7 @@ audio.autoUnlock();
   window.__waveAudio = { peek: () => ({ env: +audio.waveEnvelope().toFixed(3), level: +audio.waveLevel().toFixed(4) }) };
 }
 
-const albums = ALBUMS.map(a => ({ ...a, cover: '../音乐层/' + a.cover }));   // 封面路径相对本页
+const albums = ALBUMS.map(a => ({ ...a, cover: coverURL(a.cover) }));   // 封面路径相对本页
 let playerWin = null;
 function openMusic() {
   // 每次都走 openPlayer：它自己会认出窗口只是被收起来了（keepAlive）并 reopen()。
@@ -1047,6 +1064,10 @@ function openMusic() {
     // 向日葵 → 一句话气泡
     for (const o of sunflowerObjs) {
       if (ray.intersectObject(o, true).length) { murmurAt(sunflowerObjs[0]); return; }
+    }
+    // 吉他 → 暂时也只有一句话（音频/视频还没录，见 GUITAR_LINES 那段）
+    if (guitarObj && ray.intersectObject(guitarObj, true).length) {
+      murmurAt(guitarObj, GUITAR_LINES); return;
     }
     // 海 → 看海（点到水那边的空地；再点海 / Esc / 点空白 退回）
     if (!deskOn && seaPointAt(ray)) { toggleSea(); return; }
@@ -1130,11 +1151,22 @@ const MURMURS = [
   '流泪道别并不适合我们，因为下次见面时会很难为情',
   '雨一直不停就好了',
 ];
+/* 吉他现在**能点但点了没反应** —— 音频/视频还没录。
+ * 三种做法里选了这一种（Iris 2026-09-01 定的）：
+ *   ① 把点击摘掉  → 但它已经登记了悬停（会抬起来、光标变兔子），说「能点」又不给反应，
+ *                    那是三种里最像坏掉的一种
+ *   ② 弹一个窗口  → 一个系统对话框跳出来说「还没做」，是从这个世界外面说话
+ *   ③ **一句气泡** → 和向日葵同一套语言：物件自己小声说一句。选它。
+ * 录完之后：把下面 GUITAR_LINES 和点击里那一支删掉，换成真正的交互。 */
+const GUITAR_LINES = ['作者大大艰难产出中…'];
+
 const BUBBLE_MAX = 5, BUBBLE_LIFE = 9.5;
-let bubbleBox = null, bubbleAnchor = null, lastMurmur = -1;
+let bubbleBox = null, bubbleAnchor = null, bubbleFor = null, lastMurmur = -1;
 const bubbleList = [];
 
-function murmurAt(anchorObj) {
+/* @param anchorObj  气泡从哪个物件头顶冒出来
+ * @param lines      候选台词（默认向日葵那几句） */
+function murmurAt(anchorObj, lines = MURMURS) {
   if (!bubbleBox) {
     bubbleBox = h('div.y2k', {
       style: { position: 'fixed', zIndex: '9996', pointerEvents: 'none',
@@ -1143,16 +1175,26 @@ function murmurAt(anchorObj) {
     });
     document.body.appendChild(bubbleBox);
   }
-  // 锚点只在第一次定下来 —— 戳哪一朵都从这儿冒
-  if (!bubbleAnchor) {
+  /* 锚点跟着**是谁在说话**走。同一个物件只算一次（戳哪一朵向日葵都从同一处冒），
+   * 换了物件就重算，并且把上一个物件的话**当场收走** ——
+   * 吉他说的话飘在向日葵头顶，那就成了另一个物件在说话了。 */
+  if (bubbleFor !== anchorObj) {
+    bubbleFor = anchorObj;
     const b = new THREE.Box3().setFromObject(anchorObj);
     bubbleAnchor = b.getCenter(new THREE.Vector3());
     bubbleAnchor.y = b.max.y + 0.055;
+    for (const old of bubbleList.splice(0)) old.el.remove();
+    lastMurmur = -1;
   }
   // 随机一句，但不要连着重复上一句
-  let i = Math.floor(Math.random() * MURMURS.length);
-  if (MURMURS.length > 1 && i === lastMurmur) i = (i + 1) % MURMURS.length;
+  let i = Math.floor(Math.random() * lines.length);
+  if (lines.length > 1 && i === lastMurmur) i = (i + 1) % lines.length;
   lastMurmur = i;
+
+  /* 只有一句话的时候（吉他就是），连点会叠出五条一模一样的 ——
+   * 那不像「它又说了一遍」，像界面卡了。同一句就只把它的寿命续上。 */
+  const same = bubbleList[bubbleList.length - 1];
+  if (same && same.el.textContent === lines[i]) { same.t = 0; return; }
 
   const el = h('div.y2k-glass', {
     style: { padding: '8px 15px', borderRadius: '16px 16px 16px 5px', whiteSpace: 'nowrap',
@@ -1166,7 +1208,7 @@ function murmurAt(anchorObj) {
              '--y2k-tint': 'rgba(255,255,255,.30)',
              opacity: '0', transform: 'translateY(8px)',
              transition: 'opacity .28s var(--y2k-ease,ease), transform .28s var(--y2k-ease,ease)' },
-  }, MURMURS[i]);
+  }, lines[i]);
   bubbleBox.appendChild(el);
   requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; });
   bubbleList.push({ el, t: 0 });
@@ -1221,7 +1263,14 @@ function openBar() {
     style: { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0',
              borderRadius: '10px', background: '#fff', opacity: '0', transition: 'opacity .45s' },
   });
-  frame.addEventListener('load', () => { frame.style.opacity = '1'; });
+  frame.addEventListener('load', () => {
+    frame.style.opacity = '1';
+    /* ⚠️ 占位层要**收掉**，不能只让 iframe 盖住它。
+     * 只盖的话它一直躺在下面：对方页面有任何透明的地方，
+     * 那颗「在新标签页打开」的幽灵按钮就会从人家排版中间透出来
+     * （Iris 2026-08-31 看到的中间那个框）。 */
+    placeholder.style.display = 'none';
+  });
   setTimeout(() => {
     if (frame.style.opacity === '1') return;
     hint.textContent = '这个站点大概不让被嵌进来';
@@ -1390,10 +1439,14 @@ function buildMini() {
   const prevB = ui.btn({ label: '⏮', size: 'sm', variant: 'ghost', title: '上一首', onClick: () => audio.prev() });
   const playB = ui.btn({ label: '▶', size: 'sm', variant: 'primary', title: '播放 / 暂停', onClick: () => audio.toggle() });
   const nextB = ui.btn({ label: '⏭', size: 'sm', variant: 'ghost', title: '下一首', onClick: () => audio.next() });
-  const openB = ui.btn({ label: '架', size: 'sm', variant: 'ghost', title: '打开唱片架', onClick: () => openMusic() });
+  /* ⚠️ 原来这里还有一颗「架」按钮（打开唱片架）。2026-08-31 Iris 删掉了 ——
+   * 场景里点那张黑胶就回唱片架了，小窗口上再放一颗是把同一件事说两遍，
+   * 而这个窗口只有 118px 高，每多一颗按钮中间就更挤一分。 */
 
   miniWin = ui.window({
-    title: '正在放', sub: '', width: ENV.miniW + 'px',
+    /* compact：薄标题栏（40→26px）+ 薄页脚，省下来的高度还给中间那一行。
+     * 这个窗口只有一百多像素高，上下那两条白原来占掉了将近一半（Iris 08-31）。 */
+    title: '正在放', sub: '', compact: true, width: ENV.miniW + 'px',
     height: ENV.miniH > 0 ? ENV.miniH + 'px' : 'auto',
     fixedHeight: ENV.miniH > 0,
     modal: false,               // 不要遮罩：它是常驻的，不该挡住场景
@@ -1406,12 +1459,16 @@ function buildMini() {
   // 滑块拉大也不动。右下角，让开「✦ 视觉参数」那颗按钮。
   Object.assign(miniWin.el.style, { position: 'fixed', right: '14px', bottom: '56px', zIndex: '880' });
   sizeMini();
+  /* ⚠️ 留白**不要写成内联样式**。三段间距（线上 / 线下 / 键距）在
+   * 「✦ 视觉参数」里有滑块，走的是 ui.css 的 --y2k-mini-* 令牌；
+   * 这里写死内联的话内联优先级更高，拖滑块不会有任何反应。
+   * 三颗键居中：原来是「左边三颗 + spacer + 右边那颗『架』」，
+   * 「架」删掉之后 spacer 就没有意义了，留着只会把三颗键钉在左边。 */
   miniWin.setView(
-    h('div.y2k-section.y2k-section--tight', { style: { padding: '8px 10px 10px' } },
-      h('div.y2k-row.y2k-row--static', { style: { padding: '0 0 6px', gap: '8px', minWidth: '0' } },
+    h('div.y2k-section.y2k-section--tight.y2k-mini',
+      h('div.y2k-row.y2k-row--static.y2k-mini__info',
         thumb, h('span.y2k-row__main', { style: { minWidth: '0' } }, title, sub)),
-      h('div', { style: { display: 'flex', gap: '5px', alignItems: 'center' } },
-        prevB, playB, nextB, ui.spacer(), openB),
+      h('div.y2k-mini__keys', prevB, playB, nextB),
     ),
   );
   miniEls = { thumb, title, sub, playB, prevB, nextB };
@@ -1433,12 +1490,19 @@ function sizeMini() {
     if (!st.trackId) return;                       // 还没选过歌就不冒出来
     if (!miniWin) buildMini();
     const e = miniEls;
-    if (st.cover && e.thumb.getAttribute('src') !== st.cover) e.thumb.src = st.cover;
+    /* ⚠️ 这里必须走 coverURL()。audio.state 里的 cover 是 albums.js 的**原样**
+     * （'covers/xx.jpg'，相对 音乐层/），这页在 /共用/ 下，直接用就是 404 ——
+     * 小窗口的缩略图一直是个碎图标（08-31 顺手修的）。比的也要是补过前缀的那个，
+     * 否则每次 change 都判为「不一样」，一直重新赋值。 */
+    const cv = st.cover ? coverURL(st.cover) : '';
+    if (cv && e.thumb.getAttribute('src') !== cv) e.thumb.src = cv;
     e.title.textContent = st.title || '—';
     e.sub.textContent = [st.artist, st.album].filter(Boolean).join(' — ');
     e.playB.textContent = st.playing ? '⏸' : '▶';
     e.playB.title = st.playing ? '暂停' : '播放';
-    miniWin.setTitle('正在放', st.playing ? '' : '已暂停');
+    /* 副标题原来在暂停时写「已暂停」，08-31 删了 ——
+     * 暂停与否看播放键的图标就知道（player.js 里那个同名的标签也一起删了）。 */
+    miniWin.setTitle('正在放', '');
     // 换歌时只有「被收起来了」才叫它回来。
     // 以前每次换歌都 reopen()，而 reopen 里有 api.focus() —— 焦点一跳，
     // 窗口就跟着闪一下、看着像位置在跳。

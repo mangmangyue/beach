@@ -106,27 +106,16 @@ export function openPlayer({ albums = ALBUMS, shelf = SHELF, onClose } = {}) {
   const npThumb = h('img.y2k-row__thumb', { alt: '', src: '' });
   const npTitle = h('span.y2k-row__title', '');
   const npSub   = h('span.y2k-row__sub', '');
-  const npTag   = h('span.y2k-tag.y2k-tag--quiet', '待机');
+  const npTag   = h('span.y2k-tag.y2k-tag--quiet', { hidden: true });
 
   /* 连播：一首试听放完，自动上下一首。
-   * 未登录访客每首只有 30 秒，一首首手点很累；连着放才像「一张唱片在转」。 */
-  let autoNext = true;
-  const npAuto = ui.btn({
-    label: '连播', size: 'sm',
-    title: '一首放完自动接下一首',
-    onClick: () => {
-      autoNext = !autoNext;
-      npAuto.classList.toggle('y2k-btn--ghost', !autoNext);
-      npAuto.setAttribute('aria-pressed', String(autoNext));
-    },
-  });
-  npAuto.setAttribute('aria-pressed', 'true');
-
-  const npStop = ui.btn({
-    label: '停', size: 'sm', variant: 'ghost',
-    title: '停下（关窗口不会停 —— 唱片会一直转）',
-    onClick: () => { engine.stop(); },
-  });
+   * 未登录访客每首只有 30 秒，一首首手点很累；连着放才像「一张唱片在转」。
+   *
+   * ⚠️ 2026-08-31 Iris：「连播 / 停 这两个按钮我不太懂，删掉吧。」
+   * 删的是**按钮**，不是行为 —— 连播原来默认就是开着的，她一直是在开着的状态下听的，
+   * 所以这里保留 `autoNext = true`，只是不再给一个开关。想关的话改这一行。
+   * 「停」也一样：关窗口歌照样继续放（那是设计），要停就按暂停。 */
+  const autoNext = true;
 
   /* 放不出声时才出现的一行。平时不占位置。 */
   const npNotice = h('div.y2k-note', { hidden: true,
@@ -136,7 +125,7 @@ export function openPlayer({ albums = ALBUMS, shelf = SHELF, onClose } = {}) {
     h('div.y2k-row.y2k-row--static', { style: { padding: '0 0 8px', gap: '8px' } },
       npThumb,
       h('span.y2k-row__main', npTitle, npSub),
-      npTag, npAuto, npStop,
+      npTag,
     ),
     npNotice,
   );
@@ -190,11 +179,17 @@ export function openPlayer({ albums = ALBUMS, shelf = SHELF, onClose } = {}) {
 
       if (s.playing) {
         npTag.className = 'y2k-tag';
+        npTag.hidden = false;
         ui.fill(npTag, h('span.y2k-dot'), '正在放');
         npNotice.hidden = true;
       } else {
+        /* ⚠️ 「已暂停」和「待机」都不显示了（Iris 2026-08-31：看不懂，删掉）——
+         * 暂停与否看播放键的图标就知道，多一个标签只是多分走一点注意力。
+         * 「载入中 / 放不出来」留着：那两个是**只有这里说得出口**的信息。 */
+        const msg = s.loading ? '载入中' : s.failed ? '放不出来' : '';
         npTag.className = 'y2k-tag y2k-tag--quiet';
-        ui.fill(npTag, s.loading ? '载入中' : s.failed ? '放不出来' : '已暂停');
+        npTag.hidden = !msg;
+        ui.fill(npTag, msg);
       }
       syncDuckFor(win);
       renderTrackStates();
@@ -254,7 +249,8 @@ export function openPlayer({ albums = ALBUMS, shelf = SHELF, onClose } = {}) {
   /* ======================= 第一层 · 唱片架 ================================ */
   const shelfView = ui.scroll(
     ui.section(
-      ui.legend('唱片架'),
+      /* legend「唱片架」删了（Iris 2026-08-31）—— 标题栏已经写着 VINYL，
+       * 一个窗口不需要把自己的名字说两遍。 */
       albums.length
         ? ui.grid(albums.map(album => ui.card({
             cover: album.cover,
@@ -278,10 +274,9 @@ export function openPlayer({ albums = ALBUMS, shelf = SHELF, onClose } = {}) {
     win.setAccent(playing.album?.accent || null);   // 架子上就跟着「正在放」的那张
     win.setTitle(shelf.title, shelf.sub);
     win.setView(shelfView, nowPlaying);
-    win.setFooter(
-      ui.note(audio.state.trackId ? '关掉窗口歌会继续放 —— 唱片还在转。' : shelf.blurb),
-      ui.spacer(), ambienceControl(),
-    );
+    /* 原来这里有一行 ui.note（「关掉窗口歌会继续放 —— 唱片还在转。」/ shelf.blurb），
+     * 2026-08-31 Iris 要求删掉。行为没变，关掉窗口歌照样继续放。 */
+    win.setFooter(ui.spacer(), ambienceControl());
   }
 
   /* ======================= 第二层 · 专辑内页 ============================== */
@@ -384,7 +379,7 @@ export function openPlayer({ albums = ALBUMS, shelf = SHELF, onClose } = {}) {
   function showFooterFor(album) {
     // 两个平台的外链都给 —— 访客用哪个都有去处（Iris 2026-08-26）
     win.setFooter(
-      ui.btn({ label: '返回唱片架', icon: '←', variant: 'ghost', onClick: showShelf }),
+      ui.btn({ label: '返回', icon: '←', variant: 'ghost', onClick: showShelf }),
       ui.spacer(),
       ambienceControl(),
       ui.btn({ label: 'Apple Music', href: appleUrlFor(album), ext: true }),
