@@ -215,7 +215,13 @@ if (document.documentElement) document.documentElement.dataset.y2kTier = GLASS_T
 /* 预设切换器的几个常量。声明在这里而不是跟 PRESETS 放一起 ——
  * 下面 setPreset / _preset 的初始化比 PRESETS 那一节先执行，const 有暂时性死区。 */
 const PRESET_ORDER = ['thin', 'base', 'bubble'];   // 厚玻璃已删（Iris 08-31：太厚了）
-const DEFAULT_PRESET = 'base';
+/* ⚠️ **出厂档 = 访客看到的档。**（2026-09-02 定成泡泡）
+ * 面板上选的那一档只存在**当前这台机器的 localStorage** 里，
+ * 而 localStorage 是按 origin 分的 —— localhost 上选了泡泡，
+ * 线上（github.io）是另一个 origin，一条记录都没有，只能吃这个常量。
+ * 所以「在本地调好了」和「访客看到的是这个」是两件事，
+ * 定稿必须落到代码里：这一行 + VIS 的 def + ui.css 的令牌。 */
+const DEFAULT_PRESET = 'bubble';
 const LS_PRESET = 'y2k-glass-preset';
 
 /* 出厂参数。Iris 在 UI实验室/玻璃.html 上拖滑块调，调好点「导出」贴回这里。 */
@@ -700,7 +706,9 @@ export const PRESETS = {
   bubble:{ label: '③ 泡泡', material: 'bubble', glass: null },
 };
 
-let _material = 'glass';
+/* ⚠️ 跟着出厂档走，不要写死。写死 'glass' 而 DEFAULT_PRESET 是泡泡的话，
+ * 两个数就对不上了：预设显示泡泡、新开的窗口却是玻璃材质（连字色一起错）。 */
+let _material = PRESETS[DEFAULT_PRESET].material;
 /* 默认深字。场景是**明亮**的白沙滩（宪法 v1.0），玻璃面板整体比背景亮，
  * 浅字压上去会直接消失。想换回浅字：ui.setInk('light')。 */
 let _ink = 'dark';
@@ -1232,11 +1240,11 @@ const VIS = [
   { k: 'specR',    tag: '光斑大小', min: 0, max: 200, step: 2, def: 40, unit: 'px' },
   { k: 'specA',    tag: '光斑强度', min: 0, max: 1,  step: .02, def: .4 },
   { k: 'grain',    tag: '颗粒',     min: 0, max: 20, step: 1,  def: 0, unit: '%' },
-  { k: 'radius',   tag: '圆角',     min: 0, max: 40, step: 1,  def: 22, unit: 'px' },
+  { k: 'radius',   tag: '圆角',     min: 0, max: 40, step: 1,  def: 9,  unit: 'px' },
   /* 迷你播放器那一小块的三段留白。差两三个像素就觉得挤，只能当场拖。 */
-  { k: 'miniLead', tag: '小窗·线上', min: 0, max: 24, step: 1,  def: 6,  unit: 'px' },
-  { k: 'miniGap',  tag: '小窗·线下', min: 0, max: 30, step: 1,  def: 10, unit: 'px' },
-  { k: 'miniBtns', tag: '小窗·键距', min: 0, max: 24, step: 1,  def: 6,  unit: 'px' },
+  { k: 'miniLead', tag: '小窗·线上', min: 0, max: 24, step: 1,  def: 4,  unit: 'px' },
+  { k: 'miniGap',  tag: '小窗·线下', min: 0, max: 30, step: 1,  def: 6,  unit: 'px' },
+  { k: 'miniBtns', tag: '小窗·键距', min: 0, max: 24, step: 1,  def: 18, unit: 'px' },
 ];
 const visVals = (() => {
   const d = Object.fromEntries(VIS.map(v => [v.k, v.def]));
